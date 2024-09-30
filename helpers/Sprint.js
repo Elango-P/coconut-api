@@ -1,0 +1,6 @@
+module.exports = {
+	STATUS_ACTIVE_TEXT: "Active",
+	STATUS_IN_ACTIVE_TEXT: "InActive",
+	STATUS_ACTIVE: 1,
+	STATUS_IN_ACTIVE: 0
+};

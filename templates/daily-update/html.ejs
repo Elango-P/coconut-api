@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <title>Daily Update</title>
+    </head>
+    <body>
+        <div class="content">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="titleRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Worked Tickets :</strong>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="contentRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td class="description">
+                                        <table>
+                                            <tbody>
+                                                <%if (typeof notes !== "undefined" && notes && notes.length > 0) { %>
+                                                    <tr>
+                                                        <td class="rowValue"><%- notes %></td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

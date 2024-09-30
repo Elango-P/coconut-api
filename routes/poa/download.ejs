@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title><%= ticketId %></title>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                $(".ticketTestLink").click(function() {
+                    $('html,body').animate({
+                        scrollTop: $("#" + $(this).attr("target")).offset().top},
+                    'slow');
+                });
+
+                function backToTop() {
+                    let scrollTop = $(window).scrollTop();
+                    if (scrollTop > 100) {
+                        $('.goToTop').fadeIn();
+                    } else {
+                        $('.goToTop').fadeOut();
+                    }
+                }
+
+                backToTop();
+
+                $(window).on('scroll', function () {
+                    backToTop();
+                });
+
+                $('.goToTop').on('click', function (e) {
+                    $('html, body').animate({scrollTop : 0}, 800);
+                    return false;
+                });
+
+                $(document).on("click", ".imagePopup", function() {
+                    $('body').append('<div class="popupImgBg"></div><div class="popupImg"></div>').css('overflow', 'hidden');
+                    $('.popupImg').append('<img src="' + $(this).attr("src")  + '"/>').fadeIn();
+                });
+
+                $(document).on("click", ".popupImg", function() {
+                    $('body').css('overflow', 'auto');
+                    $('.popupImgBg, .popupImg').remove();
+                });
+            });
+        </script>
+        <style>
+            body {
+                font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 14px;
+                line-height: 1.42857143;
+                color: #333;
+            }
+
+            a {
+                color: #337ab7;
+                text-decoration: none;
+            }
+
+            .testDetail {
+                padding-bottom: 30px;
+                padding-top: 10px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #eee;
+            }
+
+            .testDetail:last-child {
+                margin-bottom: 0;
+                border-bottom: 0;
+            }
+
+            .testDetail .testContent {
+                margin-top: 15px;
+            }
+
+            .testDetail .status {
+                font-size: 13px;
+                letter-spacing: 1px;
+            }
+
+            .colorFailed {
+                color: #ff0000;
+            }
+
+            .colorSuccess {
+                color: #228b22;
+            }
+
+            .colorWarning {
+                color: #ffa500;
+            }
+
+            img {
+                max-width: 100%;
+            }
+
+            .ticketTestLink {
+                color: #337ab7;
+                text-decoration: underline;
+                cursor: pointer;
+            }
+
+            .goToTop {
+                position: fixed;
+                right: 10px;
+                bottom: 10px;
+                line-height: 30px;
+                padding: 10px 15px 5px;
+                background: #000;
+                color: #fff;
+                font-size: 25px;
+                cursor: pointer;
+                width: 15px;
+                height: 30px;
+            }
+
+            .goToTop:hover {
+                background: #34c5b5;
+            }
+
+            .popupImgBg {
+                opacity: 0.8;
+                background: #fff;
+                position: fixed;
+                z-index: 9999;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: 0;
+            }
+
+            .imagePopup {
+                cursor: zoom-in;
+            }
+
+            .popupImg {
+                position: fixed;
+                left: 0;
+                right: 0;
+                top: 0;
+                text-align: center;
+                z-index: 9999;
+                bottom: 0;
+                cursor: zoom-out;
+            }
+
+            .popupImg:before {
+                content: "";
+                display: inline-block;
+                height: 100%;
+                vertical-align: middle;
+            }
+
+            .popupImg img {
+                max-width: 100%;
+                max-height: 100%;
+                vertical-align: middle;
+            }
+
+            .title {
+                font-weight: normal;
+                font-size: 20px;
+                margin: 0;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+            }
+
+            .titleLink {
+                margin: 10px 0 0;
+            }
+        </style>
+    </head>
+    <body>
+        <h3 style="text-align: center">Plan Of Attack</h3>
+        <div class=""></div>
+
+        <p class="titleLink"><%= ticket.ticket_id %>: <%= ticket.summary %></p>
+
+        <div>
+            <p><strong>Ticket Description: </strong></p>
+            <p class="titleLink"><%- ticket.description %></p>
+        </div>
+        <div>
+            <p><strong>Use Cases: </strong></p>
+            <p class="titleLink"><%- ticket.useCases %></p>
+        </div>
+
+        <div>
+            <p><strong>Dev. Team understanding and implementation plan: </strong></p>
+            <p class="titleLink"><%- ticket.implementationPlan %></p>
+        </div>
+
+        <div>
+            <p><strong>Ticket Analysis: </strong></p>
+            <p class="titleLink"><%- ticket.ticketAnalysis %></p>
+        </div>
+
+        <div>
+            <p><strong>Screens Impacted: </strong></p>
+            <p class="titleLink"><%- ticket.screensImpacted %></p>
+        </div>
+
+        <div>
+            <p><strong>Code Changes: </strong></p>
+            <p class="titleLink"><%- ticket.codeChanges %></p>
+        </div>
+
+        <div>
+            <p><strong>Verification Steps: </strong></p>
+            <p class="titleLink"><%- ticket.verificationSteps %></p>
+        </div>
+
+        <div>
+            <p><strong>Risks: </strong></p>
+            <p class="titleLink"><%- ticket.risks %></p>
+        </div>
+
+
+        <div>
+            <p><strong>Dependencies: </strong></p>
+            <p class="titleLink"><%- ticket.dependencies %></p>
+        </div>
+
+        <div>
+            <p><strong>Queries: </strong></p>
+            <p class="titleLink"><%- ticket.queries %></p>
+        </div>
+
+        <span class="goToTop" style="display: none;">^</span>
+    </body>
+</html>

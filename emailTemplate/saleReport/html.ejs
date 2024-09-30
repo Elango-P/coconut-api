@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script type="text/javascript" src="MailService.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        td,
+        th {
+            border: 1px solid #848080;
+            text-align: left;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgb(255, 255, 255);
+        }
+    </style>
+</head>
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+        style="border-collapse: collapse; line-height: 24px; margin: 0; padding: 0; width: 100%; font-size: 15px; color: #4aa951;">
+        <tbody>
+            <tr>
+                <td valign="top"
+                    style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif!important; border-collapse: collapse;">
+            </tr>
+            <tr>
+                <td valign="top">
+                    <div >
+                        <table class="css-serial">
+                            <tr>
+                                <td
+                                    style="text-align: center; padding: 8px; font-weight: bold; font-size: 18px; padding-bottom: 12px; padding-top: 12px; color: white; background-color: #002395;">
+                                    Sales Report - <%= date %>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td valign="top"
+                                    style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif!important; border-collapse: collapse; color: black">
+                                    <table style="border-collapse: collapse">
+                                        <tr>
+                                            <th style="padding: 8px; width: 290px; text-align: center; color: black">
+                                                Location</th>
+                                            <th style="padding: 8px; width: 250px; text-align: center; color: black">
+                                                Amount</th>
+                                        </tr>
+                                        <% for (let x of saleData) { %>
+                                            <tr>
+                                                <th
+                                                    style="padding: 8px; width: 290px; text-align: left; color: rgb(48, 91, 233)">
+                                                    <%= x.name %>
+                                                </th>
+                                                <th
+                                                    style="padding: 8px; width: 290px; text-align: center; color: rgb(48, 91, 233)">
+                                                    <%= x.totalAmount %>
+                                                </th>
+                                            </tr>
+                                            <% } %>
+                                                <tr>
+                                                    <th
+                                                        style="padding: 8px; width: 290px; text-align: center; color: black; font-weight: bold;font-size: 18px">
+                                                        Total Amount
+                                                    </th>
+                                                    <th
+                                                        style="padding: 8px; width: 290px; text-align: center; color:black ;font-size: 18px">
+                                                        <%= totalAmount %>
+                                                    </th>
+                                                </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</html>

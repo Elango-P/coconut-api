@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      border: none;
+      margin-bottom: 20px;
+    }
+
+    th {
+      background-color: black;
+      padding: 8px;
+      width: 270px;
+      text-align: center;
+      color: white;
+    }
+
+    td {
+      padding: 8px;
+      width: 270px;
+      text-align: center;
+      color: black;
+      padding-left: 18px;
+    }
+
+    .data-row td {
+      border: 1px solid black;
+    }
+
+    .tableClass {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid #a3a3a3;
+
+    }
+
+    .tableClass th,
+    td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+
+    .tableClass th {
+      background-color: #bdbcbc;
+      color: black;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .tableClass tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+
+<body>
+  <table style="margin-bottom: 7px;" class="data-row">
+    <tr>
+      <th><img src="<%= companyLogo %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+        <h2 style="padding: 0px; margin: 10px;">
+          <%= schedularName %>
+        </h2>
+      </th>
+    </tr>
+  </table>
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="1">Sales Settlement Missing Report (<%= saleDataCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let value of saleData) { %>
+        <tr>
+          <td style="text-align: left; font-weight: bold">
+            <div style="display: flex;">
+              <div>
+                <img src="<%= value.media_url %>" alt=""
+                style="min-width: 50px; min-height: 60px; padding: 0.25rem; background-color: #fff; border: 1px solid #dee2e6; border-radius: 0.25rem; max-width: 70px; max-height: 70px;"
+                class="img-fluid">
+              </div>
+              <div style="margin-left: 10px;">
+                <%= value.date %> - <%= value.shift %><br />
+                <%= value.locationName %><br />
+                <%= value.salesExecutiveName %>
+              </div>
+            </div>
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+
+  <table style="margin-bottom: 7px;" class="data-row">
+    <tr>
+      <th style="text-align: left;">
+        <h2 style="padding: 0px; margin: 10px;">
+          <%= companyName %>
+        </h2>
+      </th>
+      <th style="text-align: right;">
+        <h2>Report Generated At: <%= reportGeneratedAt %>
+        </h2>
+      </th>
+    </tr>
+  </table>
+
+</body>
+</html>

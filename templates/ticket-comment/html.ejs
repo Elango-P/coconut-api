@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <title>ticket comment</title>
+    </head>
+    <body>
+        <div class="content">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="titleRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <strong><%= updatedBy %></strong>
+                                        <span>updated comment</span>
+                                        <span class="highLight">
+                                            <a href="<%= url %>">
+                                                <%= ticketId %>
+                                            </a>
+                                        </span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="contentRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td class="title">
+                                        <table>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <a href="<%= url %>">
+                                                        [<%= ticketId %>] - <%= summary %>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="description">
+                                        <table>
+                                            <tbody>
+                                                <%if (typeof comments !== "undefined" && comments && comments.length > 0) { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Comments:</th>
+                                                        <td class="rowValue highLight"><%- comments %></td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

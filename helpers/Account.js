@@ -1,0 +1,18 @@
+module.exports = {
+	CUSTOMER:"Customer",
+	EMPLOYER:"Employer",
+	VENDOR:"Vendor",
+	USER:"User",
+	OTHER : "Other",
+    CATEGORY_VENDOR:3,
+	CATEGORY_CUSTOMER:1,
+	CATEGORY_EMPLOYEE:2,
+    CATEGORY_USER:4,
+	TYPE_OTHER : 5,
+	TAB_CUSTOMER : "Customers",
+	TAB_EMPLOYER : "Employees",   
+	STATUS_ACTIVE_TEXT: "Active",
+	STATUS_IN_ACTIVE_TEXT: "InActive",
+	STATUS_ACTIVE: 1,
+	STATUS_INACTIVE: 2
+};

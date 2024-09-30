@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td,
+        th {
+            border: 1px solid #848080;
+            text-align: left;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgb(255, 255, 255);
+        }
+    </style>
+</head>
+
+<body>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+        style="border-collapse:collapse;line-height:24px;margin:0;padding:0;width:100%;font-size:15px;color:#4aa951;">
+        <tbody>
+            <tr>
+                <td valign="top">
+                    <table class="css-serial">
+                        <tr>
+                            <td colspan="2"
+                                style="text-align:center; padding: 8px; font-weight: bold; font-size:18px; padding-bottom: 12px; padding-top: 12px; color: white; background-color: #002395;">
+                                User Incomplete Profile Report
+                            </td>
+                        </tr>
+                        <tr>
+                            <td valign="top"
+                                style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;border-collapse:collapse; color = black">
+                                <tr>
+                                    <th style="padding: 8px; width: 290px; text-align:center; color: black">User Profile
+                                    </th>
+                                </tr>
+                                <table>
+                                    <% for (let x of userData) { %>
+                                    <tr>
+                                        <th style="padding: 8px; height: 70px; width: 50%; text-align: left; font-weight: bold;">
+                                            <div class="inline-content" style="display: flex; align-items: center;">
+                                                <% if (x.media_url) { %>
+                                                <img src="<%= x.media_url %>"
+                                                    style="height: 50px; width: 50px; border-radius: 50%; margin-right: 10px;">
+                                                <% } else { %>
+                                                <div
+                                                    style="height: 50px; width: 50px; border-radius: 50%; background-color: black; margin-right: 20px; font-weight: bold; color: white;">
+                                                    <p style="text-align: center;margin-top :13px;">
+                                                        <%= x.name ? x.name.split(' ').map(n => n.charAt(0).toUpperCase()).join('') : '' %>
+                                                    </p>
+                                                    
+                                                </div>
+                                                <% } %>
+                                                <div>
+                                                    <p style="color: rgb(48, 91, 233)"><%= x.name %></p>
+                                                    <% if (x.email) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.email %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                    <% if (x.mobile_number1) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.mobile_number1 %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                    <% if (x.userProfile) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.userProfile %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                    <% if (x.date_of_joining) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.date_of_joining %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                    <% if (x.salary) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.salary %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                    <% if (x.address) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.address %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                    <% if (x.geo_location) { %>
+                                                    <p><span style="color: black;">&bull; <%= x.geo_location %></span><span
+                                                            style="color: red;"> - Missing</span></p>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                    <% } %>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+
+</html>

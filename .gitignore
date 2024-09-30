@@ -1,0 +1,7 @@
+node_modules
+.env
+.idea
+/oneportal-api.log
+*.log
+upload
+/.history

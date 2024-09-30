@@ -1,0 +1,31 @@
+const Media = {
+  //Default Path
+  DEFAULT_MEDIA_PATH: "media",
+
+  //Archieved Path
+  DEFAULT_ARCHIVE_MEDIA_PATH: "archive",
+
+  //Media Visibility
+  VISIBILITY_PUBLIC: 1,
+
+  VISIBILITY_PRIVATE: 2,
+
+  VISIBILITY_ARCHIEVE: 3,
+
+  STATUS_ACTIVE: 1,
+
+  STATUS_INACTIVE: 0,
+
+  STATUS_ARCHIEVE: 2,
+
+  FEATURE_ENABLED: "1",
+  FEATURE_DISABLED: "0",
+
+  STATUS_ACTIVE_TEXT:"ACTIVE",
+  STATUS_INACTIVE_TEXT:"INACTIVE",
+};
+
+
+module.exports = {
+  Media
+};

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      border: none;
+      margin-bottom: 20px;
+    }
+
+    th {
+      background-color: black;
+      padding: 8px;
+      width: 270px;
+      text-align: center;
+      color: white;
+    }
+
+    td {
+      padding: 8px;
+      width: 270px;
+      text-align: center;
+      color: black;
+      padding-left: 18px;
+    }
+
+    .data-row td {
+      border: 1px solid black;
+    }
+
+    .tableClass {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid #a3a3a3;
+
+    }
+
+    .tableClass th,
+    td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+
+    .tableClass th {
+      background-color: #bdbcbc;
+      color: black;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .tableClass tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    .inline-content {
+      display: flex;
+      align-items: center;
+    }
+
+    .inline-content img {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <table style="margin-bottom: 7px;" class="data-row">
+    <tr>
+      <th><img src="<%= companyLogo %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+        <h2 style="padding: 0px; margin: 10px;">
+          <%= schedularName %>
+        </h2>
+      </th>
+    </tr>
+  </table>
+  <div class="card" style="
+            flex: 1;
+            width: 100%;
+            background-color: #f76d57;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+          ">
+    <p style="color: white; font-size: 24px">
+      <%= cardData.totalAmount %>
+    </p>
+    <h2 style="color: white">Sale Amount</h2>
+  </div>
+
+  <% if (cardData.noOrderDataCount > 0) { %>
+    <table class="tableClass">
+      <thead>
+        <tr>
+          <th colspan="2">No order (<%= cardData.noOrderDataCount %>)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (let x of noOrderData) { %>
+          <tr>
+            <td style="text-align: left; font-weight: bold">
+              <%= x.locationName %>
+            </td>
+            <td style="text-align: center;">
+              <%= x.differenceHours %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
+  
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Top 10 Orders</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let value of getTop10OrderData) { %>
+        <tr>
+          <td style="text-align: left; font-weight: bold">
+            <%= value.date %><br />
+            <%= value.locationName %>
+          </td>
+          <td style="text-align: center;">
+            <%= value.total_amount %>
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Top 10 Order Products</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let value of getTop10OrderProductData) { %>
+        <tr>
+          <td style="padding: 8px; width: 290px; align-items: center; color: black; font-weight: bold">
+            <div style="display: flex;">
+              <div>
+                <img src="<%= value.media_url %>" alt=""
+                  style="min-width: 70px; min-height: 80px; padding: 0.25rem; background-color: #fff; border: 1px solid #dee2e6; border-radius: 0.25rem; max-width: 70px; max-height: 70px;"
+                  class="img-fluid">
+              </div>
+              <div>
+              <div style="margin-left: 10px;">
+                <span style="font-weight: bold; margin: 0px;">
+                  <%= value.brand_name %>
+                </span><br />
+                <span style="margin: 0px;">
+                  <%= value.product_name %> <%= value.size %>  <%= value.unit %>  <%= value.pack_size ? `(Pack Size:${value.pack_size}) ` : "" %>
+                </span><br />
+                <div class="text-primary font-weight-bold" style="margin: 0px;">
+                  <span style="margin: 0px;">
+                    <%= value.sale_price ? `₹${value.sale_price} ` : "" %>
+                  </span>
+                </div>
+              </div>
+              </div>
+            </div>
+          </td>
+        <td style="text-align: center;">
+          <%= value.quantity %>
+        </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Replenishment (<%= cardData.totalReplenishCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let x of replenishData) { %>
+        <tr>
+          <td style="font-weight: bold; color: black">
+            <img src="<%= x.image %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+            <span
+              style="display: inline-block; vertical-align: middle; height: 50px; padding-left: 8px; margin-top: 17px">
+              <%= x.userName %>
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <%= x.product_count %>(<%= x.count %>)
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+
+  <% if (cardData.cancelOrderCount > 0) { %>
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Cancelled Orders (<%= cardData.cancelOrderCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let x of cancelOrderData) { %>
+        <tr>
+          <td style="font-weight: bold; color: black">
+            <img src="<%= x.image %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+            <span
+              style="display: inline-block; vertical-align: middle; height: 50px; padding-left: 8px; margin-top: 17px">
+              <%= x.userName %><br />
+                <%= x.locationName %>
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <%= x.count %>
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+  <% } %>
+
+
+  <% if (cardData.draftOrderCount > 0) { %>
+    <table class="tableClass">
+      <thead>
+        <tr>
+          <th colspan="2">Draft Orders (<%= cardData.draftOrderCount %>)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (let x of draftOrderData) { %>
+          <tr>
+            <td style="font-weight: bold; color: black">
+              <img src="<%= x.image %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+              <span
+                style="display: inline-block; vertical-align: middle; height: 50px; padding-left: 8px; margin-top: 17px">
+                <%= x.userName %><br />
+                  <%= x.locationName %>
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <%= x.count %>
+            </td>
+          </tr>
+          <% } %>
+      </tbody>
+    </table>
+    <% } %>
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Visitors (<%= cardData.visitorDataCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let value of visitorData) { %>
+        <tr>
+          <td style="font-weight: bold; color: black">
+            <div style="display: flex;">
+              <div>
+                <img src="<%= value.media_url %>" alt=""
+                  style="min-width: 70px; min-height: 70px; width: 70px; height: 70px; padding: 0.25rem; background-color: #fff; border: 1px solid #dee2e6; border-radius: 0.25rem; max-width: 70px; max-height: 70px;"
+                  class="img-fluid">
+              </div>
+              <div style="margin-left: 10px;">
+            <%= value.dateTime %><br />
+            <%= value.name %><br />
+              <%= value.typeName %><br />
+                <%= value.purpose %>
+              </div>
+              </div>
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Sales Settlement Missing(<%= cardData.saleSettlementDataCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let x of saleSettlementData) { %>
+        <tr>
+          <td
+            style="padding: 8px; height: 70px; width: 50%; text-align: left; font-weight: bold; color: black">
+            <span
+              style="display: inline-block; vertical-align: middle; height: 50px; padding-left: 8px; margin-top: 17px;  text-align: left;">
+              <%= x.location %><br />
+                <%= x.shiftName %><br />
+            </span>
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+  <% if (cardData.cashInLocationData > 0) { %>
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Cash In Location - Mismatch</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let data of cashInLocationData) { %>
+        <tr>
+          <td style="padding: 8px; text-align: left; font-weight: bold; color: black;">
+            <span style="display: inline-block; width: 200px;"><%= data.location %></span>
+            <% if (parseInt(data.minimumCashInStore) > parseInt(data.cashInLocation)) { %>
+              <span style="margin-left: 50px;"><span style="color: red;"><%= data.cashInLocation %></span></span>
+            <% } else { %>
+              <span style="margin-left: 50px;"><span style="color: green;"><%= data.cashInLocation %></span></span>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>                
+  </table>
+  <% } %>
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Attendance - Additional Shift (<%= cardData.getAdditionalDayAndShiftCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let Data of getAdditionalDayAndShiftData.data) { %>
+        <tr>
+          <td
+            style="padding: 8px; height: 70px; width: 50%; text-align: left; font-weight: bold; color: black">
+            <div style="display: flex; align-items: center;">
+              <img src="<%= Data.image %>" style="height: 50px; width: 50px; margin-right: 10px;">
+              <span style="margin-top: 12px;">
+              <%= Data.userName %> : <%= Data.locationName %> - (<%= Data.shiftName %>)
+            </span>                      
+          </div>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>  
+
+
+
+
+
+  <table class="tableClass">
+    <thead>
+      <tr>
+        <th colspan="2">Orders (<%= cardData.orderCount %>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (let value of orderData) { %>
+        <tr>
+          <td style="text-align: left; font-weight: bold">
+            <%= value.locationName %><br />
+            <%= value.totalOrders %>
+          </td>
+          <td style="text-align: center;">
+            <%= value.totalAmount %>
+          </td>
+        </tr>
+        <% } %>
+    </tbody>
+  </table>
+
+  <table style="margin-bottom: 7px;" class="data-row">
+    <tr>
+      <th style="text-align: left;">
+        <h2 style="padding: 0px; margin: 10px;">
+          <%= companyName %>
+        </h2>
+      </th>
+      <th style="text-align: right;">
+        <h2>Report Generated At: <%= reportGeneratedAt %>
+        </h2>
+      </th>
+    </tr>
+  </table>
+
+</body>
+</html>

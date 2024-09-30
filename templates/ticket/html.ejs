@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <title>ticket status</title>
+    </head>
+    <body>
+        <div class="content">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="titleRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <strong><%= updatedBy %></strong>
+                                        <span>created</span>
+                                        <span class="highLight">
+                                            <a href="<%= url %>">
+                                                <%= ticketId %>
+                                            </a>
+                                        </span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="contentRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td class="title">
+                                        <table>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <a href="<%= url %>">
+                                                        [<%= ticketId %>] - <%= summary %>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="description">
+                                        <table>
+                                            <tbody>
+                                                <%if (typeof updatedBy !== "undefined" && updatedBy && updatedBy.length > 0) { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Updated By:</th>
+                                                        <td class="rowValue highLight"><%= updatedBy %></td>
+                                                    </tr>
+                                                <% } %>
+                                                <%if (typeof assignedTo !== "undefined" && assignedTo && assignedTo.length > 0) { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Assignee:</th>
+                                                        <td class="rowValue highLight"><%= assignedTo %></td>
+                                                    </tr>
+                                                <% } %>
+                                                <%if (typeof status !== "undefined" && status && status.length > 0) { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Status:</th>
+                                                        <td class="rowValue highLight"><%= status %></td>
+                                                    </tr>
+                                                <% } %>
+                                                <%if (typeof description !== "undefined" && description && description.length > 0) { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Description:</th>
+                                                        <td class="rowValue highLight"><%- description %></td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

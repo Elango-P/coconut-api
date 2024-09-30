@@ -1,0 +1,61 @@
+image: node:16.16.0
+
+pipelines:
+  default:
+    - step:
+        name: Build
+        caches:
+          - node
+        script:
+          - apt-get update && apt-get -y install cmake
+          - cmake
+          - npm install
+    # - step:
+    #     name: Test
+    #     script:
+    #       - npm test
+  branches:
+    development:
+      - step:
+          name: Build
+          caches:
+            - node
+          script:
+            - npm install
+      # - step:
+      #     name: Test
+      #     script:
+      #       - npm test
+      - step:
+          name: Deployment
+          script:
+            - git filter-branch -- --all
+            # - git push -f https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME_DEVELOPMENT.git development:master
+    staging:
+      - step:
+          name: Build
+          caches:
+            - node
+          script:
+            - npm install
+      # - step:
+      #     name: Test
+      #     script:
+      #       - npm test
+      - step:
+          name: Deployment
+          script:
+            - git filter-branch -- --all
+            # - git push -f https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME_STAGING.git staging:master
+    production:
+      - step:
+          name: Build
+          caches:
+            - node
+          script:
+            - npm install
+      # - step:
+      #     name: Test
+      #     script:
+      #       - npm test
+

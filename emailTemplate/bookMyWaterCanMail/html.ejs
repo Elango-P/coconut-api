@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script type="text/javascript" src="MailService.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td,
+        th {
+            border: 1px solid #848080;
+            text-align: left;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgb(255, 255, 255);
+        }
+
+        strong {
+            color: black;
+        }
+
+        .product p {
+            margin: 0 10px 0 0;
+            padding: 0;
+
+        }
+
+        .product {
+            margin-bottom: 5px;
+            display: flex;
+        }
+
+        .header-class {
+            color: black;
+        }
+    </style>
+</head>
+
+<table class="css-serial"
+    style="border-collapse:collapse;line-height:24px;margin:0;padding:0;width:100%;font-size:15px;color:gray;">
+    <tbody>
+        <tr>
+            <td
+                style="text-align:center; padding: 8px; font-weight: bold; font-size:18px; padding-bottom: 12px; padding-top: 12px; color: white; background-color: #002395;">
+                New Order</td>
+        </tr>
+
+        <tr>
+            <td valign="top"
+                style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;border-collapse:collapse; color = black">
+                <table style="border-collapse : collapse ">
+
+
+                    <div>
+                        <p><strong>Name:</strong>
+                            <%= name %>
+                        </p>
+                        <p><strong>Address:</strong>
+                            <%= address %>
+                        </p>
+                        <p><strong>Mobile:</strong>
+                            <%= mobile %>
+                        </p>
+                    </div>
+                    <h2 style="color: black;"><u>Products</u></h2>
+                    <% for (let x of products) { %>
+                        <div class="product">
+                            <p><strong>ProductName:</strong>
+                                <%= x.product_name %>
+                            </p>
+                            <p><strong>Price:</strong>
+                                <%= x.price %>
+                            </p>
+                            <p><strong>Quantity:</strong>
+                                <%= x.quantity %>
+                            </p>
+                        </div>
+                        <% } %>
+    </tbody>
+</table>
+
+</html>

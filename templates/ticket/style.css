@@ -1,0 +1,90 @@
+body {
+    font-family: Arial,sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+table {
+    width: 100%;
+}
+
+table, td, tr, th {
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.content {
+    color: #333333;
+}
+
+.content > table {
+    background-color: #f5f5f5;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    padding: 10px 0;
+}
+
+.rowLabel {
+    color: #707070;
+    font-weight: normal;
+    min-width: 90px;
+}
+
+.rowValue {
+    padding-left: 5px;
+}
+
+.highLight {
+    color:#3b73af;
+}
+
+.titleRow {
+    padding:10px 20px;
+}
+
+.titleRow table {
+    border: 0;
+}
+
+.titleRow td {
+    padding: 0;
+    vertical-align: middle;
+}
+
+.contentRow {
+    padding: 0 20px;
+}
+
+.contentRow > table {
+    border-spacing: 0;
+    border: 1px solid #ccc;
+    margin-bottom: 33px;
+    background: #fff;
+    border-radius: 5px;
+    padding: 10px 5px;
+}
+
+.contentRow .title {
+    padding:0 15px 0 16px;
+    background-color: #ffffff;
+}
+
+.contentRow .title td {
+    padding-top: 10px
+}
+
+.contentRow .title a {
+    font-size: 20px;
+    line-height: 30px;
+    color: #3b73af;
+    text-decoration: none;
+}
+
+.contentRow .description {
+    background-color: #ffffff;
+    padding: 15px;
+}
+
+.contentRow .description table {
+    width: auto;
+}

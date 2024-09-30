@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+    <style>
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        border: none;
+        margin-bottom: 20px;
+      }
+
+      th {
+        background-color: black;
+        padding: 8px;
+        width: 270px;
+        text-align: center;
+        color: white;
+      }
+
+      td {
+        padding: 8px;
+        width: 270px;
+        text-align: center;
+        color: rgb(48, 91, 233);
+        padding-left: 18px;
+      }
+
+      .tableClass {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid #d0d0d0;
+
+    }
+
+    .tableClass th,
+    td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+
+    .tableClass th {
+      background-color: #bdbcbc;
+      color: black;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .tableClass tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    </style>
+  </head>
+  <body>
+    <table style="margin-bottom: 7px;" class="data-row">
+      <tr>
+        <th><img src="<%= companyLogo %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+          <h2 style="padding: 0px; margin: 10px;">
+            <%= schedularName %>
+          </h2>
+        </th>
+      </tr>
+    </table>
+
+      <table style="margin-bottom: 7px;" >
+        <div style="width: 100%;">
+          <div style="display: flex; justify-content: space-between;">
+            <div
+              class="card"
+              style="
+                flex: 1;
+                background-color: green;
+                width: 100%;
+                padding: 10px;
+                text-align: center;
+              "
+            >
+              <p style="color: white; font-size: 24px"><%= openedLocationCount %></p>
+              <h2 style="color: white">Opened</h2>
+            </div>
+            <div
+              class="card"
+              style="
+                flex: 1;
+                width: 100%;
+                background-color:red;
+                padding: 10px;
+                text-align: center;
+                margin-left: 5px;
+              "
+            >
+              <p style="color: white; font-size: 24px"><%= notOpenedLocationCount %></p>
+              <h2 style="color: white">Not Opened</h2>
+            </div>
+          </div>
+        </div>
+      </table>
+
+    
+      <table  class="tableClass">
+        <thead>
+          <tr>
+            <th style="background-color: red;" colspan="2">Not Open(<%= notOpenedLocationCount %>)</th>
+          </tr>
+        </thead>
+        <% for (let x of notOpenLocationList) { %>
+        <tr>
+          <td style="text-align: left; font-weight: bold; border: none;"><%= x.locationName %></td>
+        </tr>
+        <%}%>
+      </table>
+
+        <table class="tableClass">
+          <thead>
+            <tr>
+              <th style="background-color: green;" colspan="2">Opened(<%= openedLocationCount %>)</th>
+            </tr>
+          </thead>
+          <% for (let value of openLocationList) { %>
+            <thead>
+              <tr>
+                <th style=" background-color: #e2dfdf;" colspan="2"><%= value.locationName %></th>
+              </tr>
+            </thead>
+            <% for (let x of value.userList) { %>
+          <tr >
+            <td
+              style="padding: 8px; height: 70px; width: 50%; text-align: left; font-weight: bold; color: rgb(48, 91, 233); border: none;"
+            >
+              <img src="<%= x.image %>" style="height: 50px; width: 50px; float: left; margin-top: 5px;  margin-left: 10px;" />
+              <span
+                style="display: flex; margin-top: 8px;  padding-left: 10px;"
+              >
+              <p >
+                <%= x.userName %>
+             
+              </p>
+              <p style="color: green; margin-left: 3px;">
+                <% if (x.loginTime) { %>
+                  (<%= x.loginTime %>)
+                  <% if (x.logOutTime) { %>
+                  --- (<%= x.logOutTime %>)
+                <% } %>
+                <% } %>
+              </p>
+              
+              </span>
+            </td>
+          </tr>
+          <% } %>
+          <% } %>
+        </table>
+
+        <table style="margin-bottom: 7px;" class="data-row">
+          <tr>
+            <th style="text-align: left;">
+              <h2 style="padding: 0px; margin: 10px;">
+                <%= companyName %>
+              </h2>
+              <h3 style="text-align: center;">Generated At: <%= reportGeneratedAt %></h3>
+            </th>
+          </tr>
+          
+        </table>
+  </body>
+</html>

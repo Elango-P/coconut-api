@@ -1,0 +1,28 @@
+/**
+ * Module dependencies
+ */
+const { BAD_REQUEST, OK } = require("../../helpers/Response");
+
+// Services
+const apartmentService = require("../../services/ApartmentService");
+
+/**
+ * Apartment get route
+ */
+ async function get(req, res, next){
+    const { id } = req.params;
+
+    try {
+        const data = await apartmentService.getApartmentDetails(id);
+
+        // API response
+        res.json(OK, {
+            data : data,
+        });
+    } catch (err) {
+        res.json(BAD_REQUEST, {
+            message: err.message,
+        });
+    }
+};
+module.exports = get;

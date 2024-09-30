@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" style="
+   margin: 0;
+   background-color: #F4F4F6;
+   ">
+
+<head>
+   <meta charset="UTF-8" />
+   <meta name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0" />
+   <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+   <title>No Order Notification</title>
+   <style>
+      /* Global */
+      @import url("https://fonts.googleapis.com/css2?family=Muli&display=swap");
+
+      html,
+      body {
+         margin: 0;
+         background: #F4F4F6;
+      }
+
+      #body {
+         width: 100%;
+         background-color: #F4F4F6;
+         border-collapse: collapse;
+         font-family: "Muli", sans-serif;
+      }
+
+      #main-wrapper {
+         margin: 0 auto;
+         padding: 34px 0;
+         width: 750px;
+      }
+
+      #main {
+         margin: 0 auto;
+         width: 750px;
+         border-collapse: collapse;
+      }
+
+      /* Header */
+      #logo {
+         height: 24px;
+         display: block;
+      }
+
+      #logo img {
+         height: 24px;
+         display: block;
+      }
+
+      #content-container {
+         padding: 60px 0 60px;
+         width: 100%;
+         /* background-color: #E86C61; */
+      }
+
+      #basic-content {
+         color: #ffffff;
+         font-family: Muli, sans-serif;
+         font-size: 28px;
+         line-height: 35px;
+         padding: 0 55px 0 60px;
+      }
+
+      #bottom-content-container {
+         background-color: #fff;
+         border-collapse: collapse;
+         width: 100%;
+      }
+
+      #bottom-content-padding {
+         padding: 75px 60px 55px;
+      }
+
+      .title {
+         margin-top: 0;
+         font-weight: 500;
+      }
+
+      .text-content {
+         font-size: 16px;
+         line-height: 24px;
+      }
+
+
+      #copyright {
+         text-align: right;
+         color: #a0a0a0;
+      }
+
+      .store-name-size {
+         font-size: 22px;
+         font-weight: 300;
+      }
+
+      .store-name-content {
+         font-size: 20px;
+      }
+
+      @media screen and (max-width: 767px) {
+
+         #main-wrapper {
+            width: 100% !important;
+            padding: 0 10px !important;
+         }
+
+         #main {
+            width: 100% !important;
+         }
+
+         #header img {
+            max-width: 100px;
+            max-height: 100px;
+            margin-top: 30px;
+         }
+
+         #content-container {
+            padding: 30px 0 !important;
+         }
+
+         #basic-content {
+            width: 100% !important;
+            padding: 0 10px !important;
+            text-align: center !important;
+         }
+
+         #bottom-content-padding {
+            padding: 30px 10px !important;
+         }
+
+         #header {
+            margin-top: 40px !important;
+
+         }
+
+         .store-name-size {
+            font-size: 14px !important;
+            font-weight: 300 !important;
+         }
+
+         .store-name-content {
+            font-size: 14px !important;
+         }
+      }
+   </style>
+</head>
+
+<body style="
+      margin: 0;
+      background-color: #F4F4F6;
+      ">
+   <table id="body" style="
+         width: 100%;
+         background-color: #F4F4F6;
+         border-collapse: collapse;
+         font-family: 'Muli', sans-serif;
+         ">
+      <tr>
+         <td id="main-wrapper" align="center" style="
+               margin: 0 auto;
+               width: 750px;
+               padding: 34px 0;
+               ">
+
+            <table id="main" style="
+                  margin: 0 auto;
+                  width: 750px;
+                  border-collapse: collapse;
+                  box-shadow: 10px 10px 10px rgb(158, 157, 157);
+
+                  " align="center">
+               <tr style="text-align: start!important;">
+                  <td id="header">
+                     <img src=" <%= logoImage %>" alt="Company Logo"
+                        style="height: 70px; display: block; width: 85px;" />
+                  </td>
+               </tr>
+               <tr>
+                  <td id="content" style="
+                        padding-top: 34px;
+                        ">
+                     <table id="content-container" style="
+                           padding: 50px 0 50px;
+                           width: 100%;
+                           background-color: <%= headerColor[0] %>;
+                           ">
+                        <tr>
+                           <td id="basic-content" style="
+                                 font-size: 28px;
+                                 line-height: 35px;
+                                 width: 425px;
+                                 text-align:center;
+                                 color: <%= headerTextColor[0] %>;
+                                 ">
+                              <span style="justify-content: center;">
+                                 Location: No Order Report <br>
+                              </span>
+                           </td>
+                        </tr>
+                     </table>
+                  </td>
+               </tr>
+               <tr>
+                  <td>
+                     <tbody>
+                        <td valign="top">
+                           <div>
+                              <table class="css-serial" style="border-collapse: collapse; border: 1px solid black;">
+                                 <tr>
+                                    <td valign="top"
+                                       style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif!important; color: black;">
+                                       <table style="border-collapse: collapse;">
+                                          <tr>
+                                             <th class="store-name-content"
+                                                style="padding: 8px; width:425px; text-align: center; color: black; border: 1px solid black;">
+                                                Location
+                                             </th>
+                                             <th class="store-name-content"
+                                                style="padding: 8px; width:425px; text-align: center; color: black; border: 1px solid black;">
+                                                Last Order At
+                                             </th>
+                                          </tr>
+                                          <% for (let x of sendData) { %>
+                                             <tr>
+                                                <th class="store-name-content"
+                                                   style="padding: 8px; width:425px; text-align: center; color: rgb(48, 91, 233); border: 1px solid black;">
+                                                   <%= x.locationName %>
+                                                </th>
+                                                <th class="store-name-content"
+                                                   style="padding: 8px; width:425px; text-align: center; color: rgb(48, 91, 233); border: 1px solid black;">
+                                                   <%= x.differenceHours %> ago
+                                                </th>
+                                             </tr>
+                                             <% } %>
+                                       </table>
+                                    </td>
+                                 </tr>
+                              </table>
+                           </div>
+                        </td>
+                     </tbody>
+               <tr>
+                  <td id="footer" style="padding: 10px 0;">
+                     <table id="footer-container" style="width: 100%;">
+                        <tr>
+                           <td style="vertical-align: middle;"></td>
+                           <td id="copyright" style="color: #a0a0a0; vertical-align: middle;">
+                              copyright &copy; 2023
+                           </td>
+                        </tr>
+                     </table>
+                  </td>
+               </tr>
+         </td>
+      </tr>
+      </td>
+      </tr>
+   </table>
+</body>
+
+</html>

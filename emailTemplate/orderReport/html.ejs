@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      border: none;
+      margin-bottom: 20px;
+    }
+
+    th {
+      background-color: black;
+      padding: 8px;
+      width: 270px;
+      text-align: center;
+      color: white;
+    }
+
+    td {
+      padding: 8px;
+      width: 270px;
+      text-align: center;
+      color: black;
+      padding-left: 18px;
+    }
+
+    .data-row td {
+      border: 1px solid black;
+    }
+
+    .tableClass {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid #a3a3a3;
+
+    }
+
+    .tableClass th,
+    td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+    }
+
+    .tableClass th {
+      background-color: #bdbcbc;
+      color: black;
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .tableClass tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    .inline-content {
+      display: flex;
+      align-items: center;
+    }
+
+    .inline-content img {
+      margin-right: 10px;
+    }
+    .tableClass thead tr th {
+        text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <table style="margin-bottom: 7px;" class="data-row">
+    <tr>
+      <th><img src="<%= companyLogo %>" style="height: 50px; width: 50px; float: left; margin-top: 5px" />
+        <h2 style="padding: 0px; margin: 10px;">
+          <%= schedularName %>
+        </h2>
+      </th>
+    </tr>
+  </table>
+
+
+    <table class="tableClass">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Location</th>
+          <th>Cash Amount</th>
+          <th>Upi Amount</th>
+          <th>Amount</th>
+          <th>count</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (let value of orderReportList) { %>
+          <tr>
+            <td style="text-align: center; font-weight: bold">
+              <%= value.date %>
+            </td>
+            <td style="text-align: center; font-weight: bold">
+              <%= value.location %>
+            </td>
+            <td style="text-align: right; font-weight: bold">
+                <%= value.email_cash_amount %>
+              </td>
+              <td style="text-align: right; font-weight: bold">
+                <%= value.email_upi_amount %>
+              </td>
+              <td style="text-align: right; font-weight: bold">
+                <%= value.email_total_amount %>
+              </td>
+              <td style="text-align: center; font-weight: bold">
+                <%= value.order_count %>
+              </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  
+
+  <table style="margin-bottom: 7px;" class="data-row">
+    <tr>
+      <th style="text-align: left;">
+        <h2 style="padding: 0px; margin: 10px;">
+          <%= companyName %>
+        </h2>
+      </th>
+      <th style="text-align: right;">
+        <h2>Report Generated At: <%= reportGeneratedAt %>
+        </h2>
+      </th>
+    </tr>
+  </table>
+
+</body>
+</html>

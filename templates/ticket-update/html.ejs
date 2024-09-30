@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <title>ticket status</title>
+    </head>
+    <body>
+        <div class="content">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="titleRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                     <%if (typeof field !== "undefined" && field && field.length > 0 && (field === "status")) { %>
+                                        <td>
+                                            <strong><%= updatedBy %></strong>
+                                            <span>Updated an ticket</span>
+                                        </td>
+                                    <% } else if (typeof field !== "undefined" && field && field.length > 0 && (field === "comments")) { %>
+                                        <td>
+                                            <strong><%= updatedBy %></strong>
+                                            <span>commented on</span>
+                                            <span class="highLight">
+                                                <a href="<%= url %>">
+                                                    <%= ticketId %>
+                                                </a>
+                                            </span>
+                                        </td>
+                                    <% } else { %>
+                                        <td>
+                                            <strong><%= updatedBy %></strong>
+                                            <span>Assigned an ticket to</span>
+                                            <strong><%= assigneeName %></strong>
+                                        </td>
+                                    <% } %>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="contentRow">
+                            <table>
+                                <tbody>
+                                <tr>
+                                    <td class="title">
+                                        <table>
+                                            <tbody>
+                                            <tr>
+                                                <td>
+                                                    <span class="highLight">
+                                                        <a href="<%= url %>">
+                                                            <%= projectName %>
+                                                        </a>
+                                                    </span> /
+                                                    <span class="highLight">
+                                                        <a href="<%= url %>">
+                                                            <%= ticketId %>
+                                                        </a>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <a href="<%= url %>">
+                                                        [<%= ticketId %>] - <%= summary %>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td class="description">
+                                        <table>
+                                            <tbody>
+                                                <!-- Show Ticket Updated By -->
+                                                <%if (typeof updatedBy !== "undefined" && updatedBy && updatedBy.length > 0) { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Changed By :</th>
+                                                        <td class="rowValue"><%= updatedBy %></td>
+                                                    </tr>
+                                                <% } %>
+
+                                                <!-- Show Ticket Assignee -->
+                                                <%if (typeof assigneeName !== "undefined" && assigneeName && assigneeName.length > 0 && typeof field === "undefined") { %>
+                                                    <tr>
+                                                        <th class="rowLabel">Assignee :</th>
+                                                         <td class="rowValue newValue">
+                                                            <%- assigneeName %>
+                                                         </td>
+                                                    </tr>
+                                                <% } %>
+
+                                                <!-- Show Ticket Status -->
+                                                <%if (typeof field !== "undefined" && field && field.length > 0 && (field === "status")) { %>
+                                                    <tr>
+                                                        <th class="rowLabel text-capitalize"><%= field %> :</th>
+                                                        <td class="rowValue text-capitalize">
+                                                            <%if (typeof original_value !== "undefined" && original_value) { %>
+                                                                <span class="rowValue highLight text-capitalize originalValueColor">
+                                                                    <span class="originalValue text-capitalize">
+                                                                        <%- original_value %>
+                                                                    </span>
+                                                                </span>
+                                                            <% } %>
+                                                            <%if (typeof new_value !== "undefined" && new_value) { %>
+                                                                <span class="rowValue newValue">
+                                                                    <%- new_value %>
+                                                                </span>
+                                                            <% } %>
+                                                        </td>
+                                                    </tr>
+                                                <% } %>
+
+                                                <!-- Show Ticket Assignee -->
+                                                <%if (typeof assigneeName !== "undefined" && assigneeName && assigneeName.length > 0 && isNewUser) { %>
+                                                    <tr>
+                                                        <th class="rowLabel text-capitalize">Assignee :</th>
+                                                        <td class="rowValue text-capitalize">
+                                                            <%if (typeof oldAssigneeName !== "undefined" && oldAssigneeName && oldAssigneeName.length > 0) { %>
+                                                                <span class="rowValue highLight text-capitalize originalValueColor">
+                                                                    <span class="originalValue text-capitalize">
+                                                                        <%- oldAssigneeName %>
+                                                                    </span>
+                                                                </span>
+                                                            <% } %>
+                                                            <%if (typeof assigneeName !== "undefined" && assigneeName) { %>
+                                                                <span class="rowValue newValue">
+                                                                    <%- assigneeName %>
+                                                                </span>
+                                                            <% } %>
+                                                        </td>
+                                                    </tr>
+                                                <% } %>
+
+                                                <!-- Show Ticket Comments -->
+                                                <%if (typeof field !== "undefined" && field && field.length > 0 && (field === "comments")) { %>
+                                                    <tr>
+                                                    <td class="vertical-align ticketComments">
+                                                        <span class="rowLabel text-capitalize"><%= field %> :</span>
+                                                        </td>
+                                                        <td>
+                                                            <%if (typeof original_value !== "undefined" && original_value) { %>
+                                                                <span class="rowValue highLight text-capitalize originalValueColor">
+                                                                    <span class="originalValue text-capitalize">
+                                                                        <%- original_value %>
+                                                                    </span>
+                                                                </span>
+                                                            <% } %>
+                                                            <%if (typeof new_value !== "undefined" && new_value) { %>
+                                                                <span class="newComments">
+                                                                    <%- new_value %>
+                                                                </span>
+                                                            <% } %>
+                                                        </td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

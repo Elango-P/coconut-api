@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <title>Post Resume Email</title>
+    </head>
+    <body>
+        <div class="content">
+            <table>
+                <tbody>
+                <tr>
+                    <td align="center" valign="top">
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#234a8b;border-radius:3px 3px 0 0!important;color:#000000;border-bottom:0;font-weight:bold;line-height:100%;vertical-align:middle;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif">
+                            <tbody>
+                            <tr>
+                                <td style="padding:30px 0;display:block">
+                                    <h1 style="color:#FFFFFF;font-family:&quot;Helvetica Neue&quot;,Helvetica,Roboto,Arial,sans-serif;font-size: 15px;font-weight:300;line-height:30%;margin:0;text-align:center">JOB APPLICATION : <%= position %> </h1>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+
+                    <tr>
+                        <td class="contentRow">
+                            <table>
+                                <tbody>
+
+                                <!-- Full Name -->
+                                 <tr>
+                                    <td class="valueText">
+                                        <img style="max-height: 100px;" src="<%= avatarURL %>" />
+                                    </td>
+
+                                    <td class="valueText">
+                                        <span><%= fullName %></span> (<span><%= age  %> Years</span>) <br> <span><%= gender %> - <%= maritalStatus %></span>
+                                    </td>
+                                   
+                                </tr>
+
+
+                                <!-- Languages Known -->
+                                <tr>
+                                    <td class="labelText">
+                                        Languages Known
+                                    </td>
+                                    <td class="valueText">
+                                        <span><%= knownLanguages %></span>
+                                    </td>
+                                </tr>
+
+                                <!-- Expected Salary -->
+                                <%if (expectedCostPerHour) { %>
+                                    <tr>
+                                        <td class="labelText">
+                                           Expected Cost Per Hour
+                                        </td>
+                                        <td class="valueText">
+                                            <span><%= expectedCostPerHour %> Hundreds</span>
+                                        </td>
+                                    </tr>
+                                <% } %>
+
+                                <!-- Employment Eligibility -->
+                                <%if (employmentEligibility) { %>
+                                    <tr>
+                                        <td class="labelText">
+                                           Employment Eligibility
+                                        </td>
+                                        <td class="valueText">
+                                            <span><%= employmentEligibility %></span>
+                                        </td>
+                                    </tr>
+                                <% } %>
+
+                                <!-- Overall Experience -->
+                                <%if (overallExperience) { %>
+                                    <tr>
+                                        <td class="labelText">
+                                            Overall Experience
+                                        </td>
+                                        <td class="valueText">
+                                            <span><%= overallExperience %> years</span>
+                                        </td>
+                                    </tr>
+                                <% } %>
+
+                                <!-- Current Salary -->
+                                <%if (currentSalary) { %>
+                                <tr>
+                                    <td class="labelText">
+                                        Current Salary
+                                    </td>
+                                    <td class="valueText">
+                                        <span><%= currentSalary %> Lakhs</span>
+                                    </td>
+                                </tr>
+                                <% } %>
+
+                                <!-- Expected Salary -->
+                                <%if (expectedSalary) { %>
+                                <tr>
+                                    <td class="labelText">
+                                       Expected Salary (Per Annum)
+                                    </td>
+                                    <td class="valueText">
+                                        <span><%= expectedSalary %> Lakhs</span>
+                                    </td>
+                                </tr>
+                                <% } %>
+
+                                <!-- Staying With -->
+                                <tr>
+                                     <td class="labelText">
+                                         Staying With
+                                     </td>
+                                     <td class="valueText">
+                                         <span><%= stayingWith %></span>
+                                     </td>
+                                 </tr>
+
+                                 <!-- Current Address -->
+                                 <tr>
+                                     <td class="labelText">
+                                         Current Address
+                                     </td>
+                                     <td class="valueText">
+                                         <span><%= currentAddress %>, <%= currentArea %>, <%= currentCity %>, <%= currentState %>, <%= currentCountry %>, <%= currentPincode %></span>
+                                     </td>
+                                 </tr>
+
+                                 <!-- Hometown Address -->
+                                 <%if (permanentArea && permanentCity && permanentState && permanentPincode) { %>
+                                 <tr>
+                                     <td class="labelText">
+                                         Hometown Address
+                                     </td>
+                                     <td class="valueText">
+                                         <span><%= permanentAddress %>, <%= permanentArea %>, <%= permanentCity %>, <%= permanentState %>, <%= permanentCountry %>, <%= permanentPincode %></span>
+                                     </td>
+                                 </tr>
+                                 <% } %>
+
+                                 <!-- Message -->
+                                 <tr>
+                                    <td class="labelText">
+                                        Message
+                                    </td>
+                                    <td class="valueText">
+                                        <span><%= message %></span>
+                                    </td>
+                                </tr>
+
+                                <!-- Highest Qualification -->
+                                 <tr>
+                                     <td class="labelText">
+                                         Highest Qualification
+                                     </td>
+                                     <td class="valueText">
+                                         <span><%= qualification %> [<%= department %>] - <%= percentage %>% (<%= yearOfPassing %>)</span>
+                                     </td>
+                                 </tr>
+
+                                 <!-- Has any arrears during the graduation -->
+                                 <tr>
+                                      <td class="labelText">
+                                          Has any arrears during the graduation
+                                      </td>
+                                      <td class="valueText">
+                                          <span><%= degreeArrear %></span>
+                                      </td>
+                                  </tr>
+
+                                  <!-- 12th -->
+                                 <tr>
+                                    <td class="labelText">
+                                        12th
+                                    </td>
+                                    <td class="valueText">
+                                        <span><%= twelvethPercentage %>% (<%= twelvethYearOfPassing %>)</span>
+                                    </td>
+                                 </tr>
+
+                                 <!-- 10th -->
+                                  <tr>
+                                      <td class="labelText">
+                                          10th
+                                      </td>
+                                      <td class="valueText">
+                                          <span><%= tenthPercentage %>% (<%= tenthYearOfPassing %>)</span>
+                                      </td>
+                                  </tr>
+
+                                  <!-- Skills -->
+                                 <tr>
+                                     <%if (typeof skills !== "undefined" && skills && skills.length > 0) { %>
+                                     <td class="labelText">
+                                         Skills
+                                     </td>
+                                     <td class="valueText">
+                                         <% skills.forEach(function(skill) { %>
+                                         <%if (typeof skill && skill !== "undefined" && (skill.technology && skill.technology.length > 0 &&
+                                                         skill.knowledge && skill.knowledge.length > 0)) { %>
+                                         <span><%= skill.technology %></span> -
+                                         <span><%= skill.knowledge %></span>
+                                         <%if (skill.years && skill.years.length > 0 &&
+                                                 skill.months && skill.months.length > 0) { %>
+                                         - <span><%= skill.years %>.<%= skill.months %> Years</span>
+                                         <% } else if (skill.years && skill.years.length < 0 &&
+                                                 skill.months && skill.months.length > 0) { %>
+                                         - <span>0.<%= skill.months %> Years</span>
+                                         <% } else if (skill.years && skill.years.length > 0 &&
+                                                 skill.months && skill.months.length < 0) { %>
+                                         - <span><%= skill.years %> Years</span>
+                                         <% } else { %>
+                                         <span></span>
+                                         <% } %>
+                                         <br/>
+                                         <% } %>
+                                         <% }); %>
+                                     </td>
+                                     <% } %>
+                                 </tr>
+
+                                 <!-- Company Name -->
+                                <%if (companyName) { %>
+                                    <tr>
+                                        <td class="labelText">
+                                            Company Name
+                                        </td>
+                                        <td class="valueText">
+                                            <span><%= companyName %> - <%= joinedMonth %> <%= joinedYear %>,</span><br/>
+                                            <span><%= jobTitle %></span>
+                                        </td>
+                                    </tr>
+                                <% } %>
+
+                                <!-- Relevant Experience -->
+                                 <%if (relevantExperience) { %>
+                                 <tr>
+                                     <td class="labelText">
+                                         Relevant Experience
+                                     </td>
+                                     <td class="valueText">
+                                         <span><%= relevantExperience %> years</span>
+                                     </td>
+                                 </tr>
+                                 <% } %>
+
+                                 <!-- Course Details -->
+                                 <tr>
+                                     <%if (typeof didProject !== "undefined" && didProject) { %>
+                                          <td class="labelText">
+                                              Course Details
+                                           </td>
+                                      <% } else { %>
+                                           <td class="labelText">
+                                                Have done any course ?
+                                            </td>
+                                       <% } %>
+
+                                     <%if (typeof didCourse !== "undefined" && didCourse) { %>
+                                     <td class="valueText">
+                                         <span><%= courseName %> - <%= coursePeriod %> Months,</span><br/>
+                                         <span><%= courseInstitution %></span>
+                                     </td>
+                                     <% } else { %>
+                                        <td class="valueText"><%= didCourseText %></td>
+                                     <% } %>
+                                 </tr>
+
+                                 <!-- Project Details -->
+                                 <tr>
+                                     <%if (typeof didProject !== "undefined" && didProject) { %>
+                                         <td class="labelText">
+                                             Project Details
+                                          </td>
+                                     <% } else { %>
+                                          <td class="labelText">
+                                               Have done any project ?
+                                           </td>
+                                      <% } %>
+                                     <%if (typeof didProject !== "undefined" && didProject) { %>
+                                         <td class="valueText">
+                                             <span><%= projectTitle %> - <%= projectPeriod %> Months,</span><br/>
+                                             <span><%= projectDescription %></span>
+                                         </td>
+                                     <% } else { %>
+                                         <td class="valueText"><%= didProjectText %></td>
+                                      <% } %>
+                                 </tr>
+
+                                <!-- Vaccine Status -->
+                                <%if (vaccineStatus === "Taken" ) { %>
+                                <tr>
+                                    <td class="labelText">
+                                        Vaccination Status 
+                                    </td>
+                                    <td style='color:rgb(55, 150, 17);' class="valueText">
+                                        <span><%= vaccineStatus %> </span>
+                                    </td>
+                                </tr>
+                                <% } %>
+                                <%if (vaccineStatus === "Not Taken" ) { %>
+                                    <tr>
+                                        <td  class="labelText">
+                                            Vaccination Status 
+                                        </td>
+                                        <td style='color:red;' class="valueText">
+                                            <span><%= vaccineStatus %> </span>
+                                        </td>
+                                    </tr>
+                                    <% } %>
+
+                                 <!-- Social Profile -->
+                                <tr>
+                                    <td class="labelText">
+                                        Social Profile
+                                    </td>
+                                    <td class="valueText">
+                                        <%if (linkedinProfileName || facebookProfileName || githubProfileName || behanceProfileName) { %>
+                                            <%if (linkedinProfileName) { %>
+                                                <span>Linkedin :
+                                                    <a href='<%= linkedinUrl %>'>
+                                                        <%= linkedinUrl %>
+                                                    </a>
+                                                </span><br/>
+                                            <% } %>
+                                            <%if (facebookProfileName) { %>
+                                                <span>Facebook :
+                                                    <a href='<%= facebookUrl %>'>
+                                                        <%= facebookUrl %>
+                                                    </a>
+                                                </span>
+                                            <% } %>
+                                            <%if (githubProfileName) { %>
+                                                <span> Behance :
+                                                    <a href='<%= githubUrl %>'>
+                                                        <%= githubUrl %>
+                                                    </a>
+                                                </span>
+                                            <% } %>
+                                            <%if (behanceProfileName) { %>
+                                                <span> Behance :
+                                                    <a href='<%= behanceUrl %>'>
+                                                        <%= behanceUrl %>
+                                                    </a>
+                                                </span>
+                                            <% } %>
+                                        <% } %>
+                                    </td>
+                                 </tr>
+
+                                 <!-- Email -->
+                                <tr>
+                                    <td class="labelText">
+                                     Email
+                                    </td>
+                                    <td class="valueText">
+                                       <span><%= email %></span>
+                                    </td>
+                                </tr>
+
+                                <!-- Job Reference -->
+                                <tr>
+                                 <td class="labelText">
+                                     Job Reference
+                                 </td>
+                                 <td class="valueText">
+                                     <span><%= jobReferenceType %> - <%= jobReferenceName %></span>
+                                 </td>
+                                </tr>
+
+                                <!-- Mobile Number -->
+                                <tr>
+                                    <td class="labelText">
+                                     Mobile Number
+                                    </td>
+                                    <td class="valueText">
+                                       <span><%= phone %></span>
+                                    </td>
+                                </tr>
+
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

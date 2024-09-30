@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script type="text/javascript" src="MailService.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td,
+        th {
+            border: 1px solid #848080;
+            text-align: left;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgb(255, 255, 255);
+        }
+    </style>
+</head>
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+    style="border-collapse:collapse;line-height:24px;margin:0;padding:0;width:100%;font-size:15px;color:#4aa951;">
+    <tbody>
+        <tr>
+            <td valign="top"
+                style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;border-collapse:collapse">
+        <tr>
+            <td valign="top">
+                <div>
+                    <table class="css-serial">
+                        <tr>
+
+                            <td
+                                style="text-align:center; padding: 8px; font-weight: bold; font-size:18px; padding-bottom: 12px; padding-top: 12px; color: white; background-color: #002395;">
+                                Daily Order Report(Product Wise) - <span style="color:crimson">
+                                    <%= orderDate %>
+                                </span> </td>
+                        </tr>
+
+                        <tr>
+                            <td valign="top"
+                                style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;border-collapse:collapse; color : black">
+                                <table style="border-collapse : collapse ">
+                                    <tr>
+                                        <th style="padding: 8px; width: 50px; text-align:center; color: black">Item.No
+                                        </th>
+                                        <th style="padding: 8px; width: 290px; text-align:center; color: black">Product Name
+                                        </th>
+                                        <th style="padding: 8px; width: 100px; text-align:center; color: black">
+                                            Quantity
+                                        </th>
+                                    </tr>
+                                    <% let itemNumber = 1; %>
+                                    <% for (let x of sendData) { %>
+                                        <tr>
+                                            <td style="padding: 8px; width: 40px; text-align:center; font:bold;color: rgb(48, 91, 233)">
+                                                <%= itemNumber %>
+                                            </td>
+                                            <th style="padding: 8px; height: 40px; text-align: left; color: rgb(48, 91, 233);">
+                                                <img src="<%= x.image %>"  style="height: 50px; width: 50px; float: left;margin-top: 5px;">
+                                                <span style="display: inline-block; vertical-align: middle; height: 50px; padding-left: 8px;margin-top: 17px;">
+                                                    <%= x.productName %>
+                                                </span>
+                                            </th>
+                                            <th
+                                                style="padding: 8px; width: 100px; text-align:center; color: rgb(48, 91, 233)">
+                                                <%= x.totalQuantity %>
+                                            </th>
+                                        </tr>
+                                        <% itemNumber++; %>
+                                        <% } %>
+                                </table>
+                            </td>
+                        </tr>
+                </div>
+            </td>
+        </tr>
+        </td>
+        </tr>
+    </tbody>
+</table>
+
+</html>
