@@ -38,6 +38,7 @@ if (config.port == Https.PORT) {
     name: "oneportal-api",
   });
 }
+console.log("server--------",server);
 
 server.use(restify.plugins.gzipResponse());
 server.use(
@@ -46,8 +47,11 @@ server.use(
   })
 );
 server.use(restify.plugins.queryParser());
+console.log("server---2-----",server);
 
 server.use((req, res, next) => {
+console.log("req--------",req);
+
   if ((req.method === "PUT" || req.method === "POST") && !req.body) {
     req.body = {};
   }
@@ -60,11 +64,14 @@ const cors = corsMiddleware({
   credentials: false,
   allowHeaders: ["authorization", "API-Token"],
 });
+console.log("cors--------",cors);
 
 server.pre(cors.preflight);
 server.use(cors.actual);
 
 server.on("MethodNotAllowed", (req, res) => {
+console.log("serverreq--------",req);
+
   if (req.method.toUpperCase() === "OPTIONS") {
     res.header(
       "Access-Control-Allow-Headers",
@@ -76,6 +83,7 @@ server.on("MethodNotAllowed", (req, res) => {
     res.send({ message: "methodNotAllowed" });
   }
 });
+console.log("server----final----",server);
 
 db.connect((err) => {
   if (err) {
@@ -83,6 +91,9 @@ db.connect((err) => {
     server.close();
   }
   server.db = db;
+
+console.log("server.db--------",server.db);
+
 
   routes(server);
 

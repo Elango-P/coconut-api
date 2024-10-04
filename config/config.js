@@ -10,6 +10,7 @@ const dbConnectionData = {
         }
       },
 };
+console.log("dbConnectionData----------",dbConnectionData);
 
 const {
     SENDGRID_API_KEY,
