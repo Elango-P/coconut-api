@@ -2,7 +2,7 @@ require("dotenv").config();
 
 // DB connect Data
 const dbConnectionData = {
-    url: "postgres://postgres:new_password@localhost:5432/vallaras_coconut_backup",
+    url: process.env.DATABASE_URL,
     dialect: 'postgres',
     "dialectOptions": {
         "ssl": {
@@ -10,6 +10,7 @@ const dbConnectionData = {
         }
       },
 };
+console.log("dbConnectionData----------",dbConnectionData);
 
 const {
     SENDGRID_API_KEY,
@@ -39,25 +40,25 @@ module.exports = {
 
 	// Pointing To Production DB
 	production: dbConnectionData,
-    sendGridAPIKey:  "",
+    sendGridAPIKey: SENDGRID_API_KEY || "",
     aws: {
-        region: "",
-        accessKeyId: "",
-        secretAccessKey: "",
-        bucketName: "",
+        region: AWS_REGION,
+        accessKeyId: AWS_KEY_ID,
+        secretAccessKey: AWS_SECRET_KEY_ACCESS,
+        bucketName: AWS_BUCKET || "",
     },
-    defaultAdminEmail: "",
-    emailImageBaseUrl: "",
-    fromEmail: "",
-    fromEmailDisplayName: "",
-    googleClientId: "",
-    shopifyShopName: "",
-    shopifyApiKey: "",
-    shopifyPassword: "",
-    shopifyAdminApiVersion: "",
-    defaultCompany: "",
-    defaultPortal: "",
-    defaultPortalUrl: "",
-    superAdminEmail: "superadmin@thidiff.com",
-    superAdminPassword: "Password01*"
+    defaultAdminEmail: DEFAULT_ADMIN_EMAIL || "",
+    emailImageBaseUrl: EMAIL_IMAGE_BASE_URL || "",
+    fromEmail: FROM_EMAIL || "",
+    fromEmailDisplayName: FROM_EMAIL_DISPLAY_NAME || "",
+    googleClientId: GOOGLE_CLIENT_ID || "",
+    shopifyShopName: SHOPIFY_SHOP_NAME,
+    shopifyApiKey: SHOPIFY_API_KEY,
+    shopifyPassword: SHOPIFY_PASSWORD,
+    shopifyAdminApiVersion: SHOPIFY_ADMIN_API_VERSION,
+    defaultCompany: DEFAULT_COMPANY,
+    defaultPortal: DEFAULT_PORTAL,
+    defaultPortalUrl: DEFAULT_PORTAL_URL,
+    superAdminEmail: SUPER_ADMIN_EMAIL,
+    superAdminPassword: SUPER_ADMIN_PASSWORD
 };
