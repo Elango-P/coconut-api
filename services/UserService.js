@@ -713,7 +713,9 @@ async  AddStartdateAndEnddateFromAttendance(
 			whereObj.mobile_number1 = body.email;
 		  } else {
 			whereObj.email = body.email;
+
 		  }
+		  console.log("whereObj------------------------", whereObj)
 	  
 		  let user = await User.findOne({
 			attributes: [

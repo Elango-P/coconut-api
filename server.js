@@ -27,7 +27,7 @@ if (config.port == Https.PORT) {
   // };
 
   server = restify.createServer(options, {
-    name: "oneportal-api",
+    name: "coconut-api",
   });
 
   // server.addContext('portal-api.thidiff.com', options2);
@@ -35,7 +35,7 @@ if (config.port == Https.PORT) {
 
 } else {
   server = restify.createServer({
-    name: "oneportal-api",
+    name: "coconut-api",
   });
 }
 console.log("server--------",server);
@@ -99,14 +99,14 @@ console.log("server.db--------",server.db);
 
   server.listen(config.port, () => {
     console.log(
-      `OnePortal API Service listening on port ${config.port} in ${config.environment} mode`
+      `coconut API Service listening on port ${config.port} in ${config.environment} mode`
     );
   });
 });
 
 process.on("SIGTERM", () => {
   gracefulShutdown((err) => {
-    console.log("Shutting the OnePortal API Service down...");
+    console.log("Shutting the coconut API Service down...");
     server.close();
     process.exit(err ? 1 : 0)
   });

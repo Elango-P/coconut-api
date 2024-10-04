@@ -4,6 +4,7 @@ require("dotenv").config();
 const dbConnectionData = {
     url: process.env.DATABASE_URL,
     dialect: 'postgres',
+    logging: true,
     "dialectOptions": {
         "ssl": {
             "rejectUnauthorized": false,
