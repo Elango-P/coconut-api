@@ -6,8 +6,11 @@ const db = {};
 db.connection = new Sequelize(config.databaseUrl, {
 	dialect: 'postgres',
 	dialectOptions: {
-		ssl: config.ssl || false
-	},  
+		ssl: {
+		  require: false,  // Set to false to not require SSL
+		  rejectUnauthorized: false,  // Set to false if you want to allow self-signed certificates
+		},
+	  }, 
 	pool: {
 		max: config.poolMax,
 		min: config.poolMin,

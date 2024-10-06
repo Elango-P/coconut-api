@@ -7,6 +7,7 @@ const dbConnectionData = {
     logging: true,
     "dialectOptions": {
         "ssl": {
+            "require": false,
             "rejectUnauthorized": false,
         }
       },
