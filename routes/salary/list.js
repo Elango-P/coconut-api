@@ -73,7 +73,9 @@ async function list(req, res, next) {
       updatedAt: "updatedAt",
       month: "month",
       year: "year",
-      user_name: "user_name"
+      user_name: "user_name",
+      tds: "tds",
+      provident_fund: "provident_fund"
     };
 
     const sortParam = sort || "salary_number";
@@ -253,6 +255,7 @@ async function list(req, res, next) {
           salaryList.year,
           Request.getTimeZone(req)
         ),
+      attendanceCount:  String.isNotNull(salaryList?.attendance_count) ? JSON.parse(salaryList?.attendance_count):[],
         ...(user?.status == UserHelper.STATUS_INACTIVE && { user_status: UserHelper.STATUS_INACTIVE_TEXT })
       };
     });

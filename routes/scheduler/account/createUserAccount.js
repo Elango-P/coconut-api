@@ -61,10 +61,11 @@ module.exports = async function (req, res) {
           throw new err();
         }
       });
-      let accountTypeIds = await AccountTypeService.getAccountTypeByCategory(
-        Account.CATEGORY_USER,
-        Request.GetCompanyId(req)
-      );
+      let typeParams={
+        category: Account.CATEGORY_USER,
+        companyId:  Request.GetCompanyId(req)
+      }
+      let accountTypeIds = await AccountTypeService.getAccountTypeByCategory(typeParams);
       let userData = await User.findAll({
         where: {
           company_id: Request.GetCompanyId(req),

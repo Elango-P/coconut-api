@@ -66,7 +66,6 @@ const billPendingreport = require("./reports/billPendingreport.js");
 const purchasePendingreport = require("./reports/purchasePendingreport.js");
 const paymentPendingreport = require("./reports/paymentPendingreport.js");
 const accountProductUpdateFromPurchaseProduct = require("./accountProduct/accountProductUpdateFromPurchaseProduct.js");
-const userUpdateDateOfJoiningByAttendance = require("./user/userUpdateDateOfJoiningByAttendance.js");
 const addMissingAttendanceRecord = require("./attendance/AddMissedAttendanceRecord.js");
 const transferProductDailyExpireReturnProductsReport = require("./transfer/transferProductDailyExpireReturnProductsReport.js");
 const RecurringMissingTaskJob = require("./recurringMissingTask/RecurringMissingTaskJob.js");
@@ -91,7 +90,8 @@ const locationNoCheckInReportEmail = require("./location/locationNoCheckInReport
 const locationPendingCheckOut = require("./location/locationPendingCheckOut.js");
 const cancelledReportNotification = require("./orderProduct/cancelledReportNotification.js");
 const orderVerifyUpiPaymentScreenshot = require("./order/orderVerifyUpiPaymentScreenshot.js");
-const enquiryTicket = require("./ticket/enquiryTicket")
+const enquiryTicket = require("./ticket/enquiryTicket");
+const AddFineForCheckoutMIssing = require("./attendance/AddFineForCheckoutMIssing.js");
 
 module.exports = (server) => {
   // Schedular Api
@@ -391,17 +391,6 @@ module.exports = (server) => {
   );
 
   server.post(
-    "/v1/scheduler/user/userUpdateDateOfJoiningByAttendance/manualRun",
-    verifyToken,
-    userUpdateDateOfJoiningByAttendance
-  );
-  server.post(
-    "/v1/scheduler/user/userUpdateDateOfJoiningByAttendance",
-    verifySchedulerAuthorization,
-    userUpdateDateOfJoiningByAttendance
-  );
-
-  server.post(
     "/v1/scheduler/attendance/addMissingRecords/manualRun",
     verifyToken,
     addMissingAttendanceRecord
@@ -484,6 +473,10 @@ module.exports = (server) => {
        /* ✴---Enquiry Ticket---✴ */
     server.post("/v1/scheduler/ticket/enquiryTicket", verifyToken, enquiryTicket);
     server.post("/v1/scheduler/ticket/enquiryTicket/manualRun", verifyToken, enquiryTicket);
+
+    /* ✴---Add Fine For Check-out Missing---✴ */
+    server.post("/v1/scheduler/attendance/addFineForCheckoutMissing", verifySchedulerAuthorization, AddFineForCheckoutMIssing);
+    server.post("/v1/scheduler/attendance/addFineForCheckoutMissing/manualRun", verifyToken, AddFineForCheckoutMIssing);
    
 
   };

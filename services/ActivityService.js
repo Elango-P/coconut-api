@@ -134,21 +134,25 @@ const del = async (req, res, next) => {
 
 const search = async (req, res, next) => {
   try {
-    let { page, pageSize, search, sort, sortDir, primary ,pagination, user, status,startDate,endDate, activityType, type,date} = req.query;
+    let { page, pageSize, search, sort, sortDir, primary, pagination, user, status, startDate, endDate, activityType, type, location } = req.query;
+    console.log('req.query>>>------------------------> ', req.query);
 
     const manageOthersPermission = await Permission.Has(Permission.ACTIVITY_MANAGE_OTHERS, req);
     const company_id = Request.GetCompanyId(req);
     let userDefaultTimeZone = Request.getTimeZone(req);
-    let customDate = DateTime.getCustomDateTime(date,userDefaultTimeZone)
+    let date = DateTime.getCustomDateTime(req?.query?.date || req?.query?.date, userDefaultTimeZone)
 
     let userId = Request.getUserId(req);
     const where = {};
-
 
     where.company_id = company_id;
 
     if (primary) {
       where.primary = primary
+    }
+
+    if (location) {
+      where.location_id = location;
     }
 
     if (type) {
@@ -158,28 +162,27 @@ const search = async (req, res, next) => {
     if (Number.isNotNull(status)) {
       where.status = status
     }
-    if(manageOthersPermission){
-      if(Number.isNotNull(user)){
+
+    if (manageOthersPermission) {
+      if (Number.isNotNull(user)) {
         where.owner_id = user
       }
-    }else{
+    } else {
       where.owner_id = userId
     }
 
     if (Number.isNotNull(activityType)) {
       where.activity_type_id = activityType
     }
-    if(customDate){
+
+    if (DateTime.isValidDate(date)) {
       where.created_at = {
         [Op.and]: {
-          [Op.gte]: customDate?.startDate,
-          [Op.lte]: customDate?.endDate,
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }
-   
-    
-
 
     if (startDate && !endDate) {
       where.created_at = {
@@ -233,7 +236,7 @@ const search = async (req, res, next) => {
     // Sortable Fields
     const validOrder = ["ASC", "DESC"];
     const sortableFields = {
-      id:"id",
+      id: "id",
       date: "date",
       created_at: "created_at",
       owner_id: "owner_id",
@@ -251,7 +254,6 @@ const search = async (req, res, next) => {
       createdAt: "created_at",
       location_name: "location_name",
       activity_type: "activity_type",
-      updatedBy: "updatedBy"
     };
 
     const sortParam = sort || "created_at";
@@ -284,13 +286,10 @@ const search = async (req, res, next) => {
 
     let order = []
 
-    if(sort === "location_name"){
+    if (sort === "location_name") {
       order.push(['locationDetail', 'name', sortDir])
     }
-    else if(sort === "updatedBy"){
-      order.push(["user", 'name', sortDir])
-    }
-    else{
+    else {
       order.push([sortableFields[sortParam], sortDirParam])
     }
 
@@ -312,6 +311,11 @@ const search = async (req, res, next) => {
           model: Location,
           as: "locationDetail",
           required: false,
+        },
+        {
+          model: ActivityType,
+          as: "activityUsers",
+          required: false,
         }
       ],
       where
@@ -319,30 +323,33 @@ const search = async (req, res, next) => {
 
     if (validator.isEmpty(pagination)) {
       pagination = true;
-  }
-  if (Boolean.isTrue(pagination)) {
+    }
+
+    if (Boolean.isTrue(pagination)) {
       if (pageSize > 0) {
-          query.limit = pageSize;
-          query.offset = (page - 1) * pageSize;
+        query.limit = pageSize;
+        query.offset = (page - 1) * pageSize;
       }
-  }
+    }
 
     const ActivityData = await activityModel.findAndCountAll(query);
+
     const data = [];
 
     ActivityData.rows.forEach((value => {
       data.push({
         id: value.id,
         activity: value.activity,
+        activityTypeName: value.activityUsers && value.activityUsers.name,
         activity_type: value.activity_type,
         activity_type_id: value.activity_type_id,
         actual_hours: value.actual_hours,
-        estimated_hours : value.estimated_hours,
+        estimated_hours: value.estimated_hours,
         user_id: value.owner_id,
         userName: value && value.user && value.user.name,
         userLastName: value && value.user && value.user.last_name,
         userAvatarUrl: value && value.user && value.user.media_url,
-        date: DateTime.getDateTimeByUserProfileTimezone(value.date,userDefaultTimeZone),
+        date: DateTime.getDateTimeByUserProfileTimezone(value.date, userDefaultTimeZone),
         start_date: value.start_date,
         end_date: value.end_date,
         description: value.description,
@@ -354,8 +361,8 @@ const search = async (req, res, next) => {
         updatedAt: DateTime.getCurrentDateTimeByUserProfileTimezone(value.updated_at, userDefaultTimeZone),
         status: value.statusDetail && value.statusDetail.name,
         statusId: value.statusDetail && value.statusDetail.id,
-        statusColor: value.statusDetail && value.statusDetail.color_code,   
-        allowEdit: value.statusDetail && value.statusDetail.allow_edit,   
+        statusColor: value.statusDetail && value.statusDetail.color_code,
+        allowEdit: value.statusDetail && value.statusDetail.allow_edit,
         started_at: value?.started_at,
         completed_at: value?.completed_at,
         statusGroup: value?.statusDetail && value?.statusDetail?.group,
@@ -372,7 +379,6 @@ const search = async (req, res, next) => {
     next(err);
     console.log(err);
   }
-
 };
 
 const get = async (req, res, next) => {

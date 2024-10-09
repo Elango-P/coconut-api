@@ -119,7 +119,7 @@ async function get(req, res, next) {
         data.currentLocationId=userDetails?.current_location_id,
         data.currentShiftId=userDetails?.current_shift_id,
         data.account_id = userDetails && userDetails?.account_id,
-
+        data.force_logout =  userDetails && userDetails?.force_logout
 
         res.send(200, data);
     } catch (err) {

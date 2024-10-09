@@ -144,6 +144,7 @@ const getDataBasedOnType = async (type, orderDetails, sortType) => {
 
 const getReport = async (params, res) => {
   let { page, pageSize, search, sort, sortDir, pagination, user, startDate, endDate, location, shift, type, paymentType, group, status, orderType, companyId, timeZone } = params;
+  let date = DateTime.getCustomDateTime(params?.date, timeZone)
 
   // Validate if page is not a number
   page = page ? parseInt(page, 10) : 1;
@@ -260,6 +261,15 @@ const getReport = async (params, res) => {
       [Op.and]: {
         [Op.gte]: DateTime.toGMT(start_date,timeZone),
         [Op.lte]: DateTime.toGMT(end_date,timeZone),
+      },
+    };
+  }
+
+  if (date && Number.isNotNull(params?.date)) {
+    where.date = {
+      [Op.and]: {
+        [Op.gte]: date?.startDate,
+        [Op.lte]: date?.endDate,
       },
     };
   }

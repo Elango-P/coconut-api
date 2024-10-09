@@ -4,6 +4,7 @@ module.exports = (sequelize, DataTypes) => {
 	const User = require("./User")(sequelize, DataTypes);
 	const UserIndex = require("./UserIndex")(sequelize, DataTypes);
 	const media = require("./Media")(sequelize, DataTypes);
+	const attendanceType = require("./attendanceType")(sequelize, DataTypes);
 
 	const Attendance = sequelize.define("Attendance", {
 		id: {
@@ -154,6 +155,11 @@ module.exports = (sequelize, DataTypes) => {
 	Attendance.belongsTo(media, {
         as: "media",
         foreignKey: "check_in_media_id",
+    });
+
+	Attendance.belongsTo(attendanceType, {
+        as: "attendanceTypeDetail",
+        foreignKey: "type",
     });
 
 	Attendance.belongsTo(UserIndex, { as: "userIndex", foreignKey: "user_id", targetKey: "user_id", });

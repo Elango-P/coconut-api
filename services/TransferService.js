@@ -191,7 +191,7 @@ const search = async (req, res) => {
     //get company Id from request
     const companyId = Request.GetCompanyId(req);
     const timeZone = Request.getTimeZone(req)
-    let customDate = DateTime.getCustomDateTime(selectedDate, timeZone)
+    let date = DateTime.getCustomDateTime(selectedDate || req?.query?.date, timeZone)
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
     if (isNaN(page)) {
@@ -262,13 +262,21 @@ const search = async (req, res) => {
         where.owner_id = owner ? owner : user;
       }
     } else {
-      where.owner_id = Request.getUserId(req);
+      where = {
+        ...where,
+        [Op.or]: [
+          { from_store_id: Request.getCurrentLocationId(req) },
+          { to_store_id: Request.getCurrentLocationId(req) },
+
+        ]
+      };
+
     }
-    if (Number.isNotNull(selectedDate)) {
+    if (date && Number.isNotNull(selectedDate || req?.query?.date)) {
       where.date = {
         [Op.and]: {
-          [Op.gte]: customDate?.startDate,
-          [Op.lte]: customDate?.endDate,
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }
@@ -339,6 +347,8 @@ const search = async (req, res) => {
       && sortParam == "owner_id"
     ) {
       order.push([[sortableFields[sortParam], sortDirParam]]);
+    }else{
+      order.push([sortParam, sortDirParam]);
     }
 
     const query = {

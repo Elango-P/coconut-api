@@ -27,6 +27,8 @@ const { getSettingValue } = require("../../services/SettingService");
 const Setting = require("../../helpers/Setting");
 const Number = require("../../lib/Number");
 const Response = require("../../helpers/Response");
+const AttendanceTypeService = require("../../services/AttendanceTypeService");
+const ArrayList = require("../../lib/ArrayList");
 
 
 /**
@@ -147,10 +149,16 @@ if(data?.leaveType){
       where: { user_id: data.user, date: date, company_id: companyId , login : { [Op.ne] : null} , logout : { [Op.ne] : null}},
     })
 
-    if(attendanceExist && data.type != Attendance.TYPE_LEAVE){
-      attendanceData.type = Attendance.TYPE_ADDITIONAL_DAY;
+    let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: companyId})
+    let absentIds = await AttendanceTypeService.getAttendanceTypeId({is_absent:true, company_id: companyId})
+
+    if(attendanceExist && data?.type && !leaveIds?.includes(data?.type)){
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: companyId})
+      if(ArrayList.isArray(additionalDayIds)){
+        attendanceData.type = additionalDayIds[0];
+      }
     } else {
-      attendanceData.type = data.type;
+      attendanceData.type = data?.type;
     }
 
     const attendance = await AttendanceModal.create(attendanceData);
@@ -160,7 +168,7 @@ if(data?.leaveType){
       id: attendance.id
     });
     res.on("finish", async () => {
-        if (data.type === Attendance.TYPE_LEAVE || data.type === Attendance.TYPE_ABSENT) {
+        if (leaveIds?.includes(data?.type) || absentIds?.includes(data?.type)) {
           let channelId = await getSettingValue(Setting.ATTENDANCE_LEAVE_NOTIFICATION_CHANNEL, companyId);
           if(channelId && channelId !==""){
             AttendanceService.SendMessge(null, attendance?.id, companyId, data.type, attendance?.created_at, null, channelId);

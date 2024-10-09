@@ -34,6 +34,7 @@ module.exports = {
     VALIDATE_DRAFT_ORDER_ON_CHECKOUT: "validate_draft_order_on_checkout",
     MINIMUM_REPLENISH_PRODUCTS: "minimum_replenish_products",
   LOCATION_CHANGE_NOTIFICATION_EMAIL: "location_change_notification_email",
+    ALLOWED_ORDER_TYPES:"allowed_order_types",
 
 
 
@@ -156,6 +157,7 @@ module.exports = {
  AVERAGE_ORDER_DAYS: "location_product_average_order_days",
 
  FINE_ADD_FOR_ATTENDANCE_LATE_CHECKIN:"fine_add_for_attendance_late_checkin",
+ ATTENDANCE_CHECKOUT_MISSING_FINE_TYPE: "attendance_checkout_missing_fine_type",
  BONUS_ADD_FOR_ATTENDANCE_EARLY_CHECKIN:"bonus_add_for_attendance_early_checkin",
  BONUS_ADD_FOR_EXTRA_STOCK_ENTRY:"bonus_add_for_extra_stock_entry",
  STOCK_ENTRY_EXTRA_BONUS_TYPE: "stock_entry_extra_bonus_type",
@@ -191,6 +193,22 @@ module.exports = {
 
  /* ✴---Attendance---✴ */
  ATTENDANCE_EARLY_CHECK_OUT_ENQUIRY_TICKET_TYPE: "attendance_early_check_out_enquiry_ticket_type",
+
+ /* ✴---Ticket---✴ */
+ FINE_ADD_FOR_TICKET_DUE_DATE_CHANGE:"fine_add_for_ticket_due_date_change",
+
+ GOOGLE_ACCESS_TOKEN: "google_access_token",
+ GOOGLE_REFRESH_TOKEN: "google_refresh_token",
+ /* ✴---Payment---✴ */
+ FINE_ADD_FOR_PAYMENT_DUE_DATE_CHANGE:"fine_add_for_payment_due_date_change",
+ PAYMENT_DUE_DATE_CHANGE_FINE_TYPE:"payment_due_date_change_fine_type",
+
+ /* ✴---Bill---✴ */
+ BILL_DUE_DATE_CHANGE_FINE_TYPE:"bill_due_date_change_fine_type",
+ FINE_ADD_FOR_BILL_DUE_DATE_CHANGE:"fine_add_for_bill_due_date_change",
+
+
+
 
 
 

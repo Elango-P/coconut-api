@@ -150,6 +150,11 @@ const search = async (req, res) => {
     let AttendanceList = await AttendanceCount();
     let AttendanceListHours = await sumAttendanceHours();
 
+    let workingDayIds = await AttendanceTypeService.getAttendanceTypeId({is_working_day:true})
+      let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true})
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true})
+      let absentDayIds = await AttendanceTypeService.getAttendanceTypeId({is_absent:true})
+
     // Get Store list and count
     const userDetail = await UserModel.findAndCountAll(query);
 
@@ -161,27 +166,19 @@ const search = async (req, res) => {
       let totalAdditionalHours = 0
 
       let type = AttendanceList.filter((data) => {
-        if (data.user_id == id && data.type === Attendances.TYPE_ADDITIONAL_DAY) {
-          return data;
-        }
+        return additionalDayIds.length > 0 && additionalDayIds.includes(data?.type) && data.user_id == id;
       })
 
       let leave = AttendanceList.filter((data) => {
-        if (data.user_id == id && data.type === Attendances.TYPE_LEAVE) {
-          return data;
-        }
+        return leaveIds.length > 0 && leaveIds.includes(data?.type) && data.user_id == id;
       })
 
       let absent = AttendanceList.filter((data) => {
-        if (data.user_id == id && data.type === Attendances.TYPE_ABSENT) {
-          return data;
-        }
+        return absentDayIds.length > 0 && absentDayIds.includes(data?.type) && data.user_id == id;
       })
 
       let worked = AttendanceList.filter((data) => {
-        if (data.user_id == id && data.type === Attendances.TYPE_WORKING_DAY) {
-          return data;
-        }
+        return workingDayIds.length > 0 && workingDayIds.includes(data?.type) && data.user_id == id;
       })
 
       let login = AttendanceList.filter((data) => {

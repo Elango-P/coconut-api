@@ -23,7 +23,6 @@ const storeNoCheckInNotificationService = require('./storeNoCheckInNotificationS
 const noOrderEmailService = require('./noOrderReportService');
 const Setting = require('../helpers/Setting');
 const { getSettingList, getValueByObject, getSettingListByName, getSettingValue } = require('./SettingService');
-const { TYPE_ADDITIONAL_DAY } = require('../helpers/Attendance');
 const String = require('../lib/string');
 const Status = require('../helpers/Status');
 const Location = require('../helpers/Location');
@@ -37,6 +36,8 @@ const { listByRolePermission } = require("./UserService");
 const UserService = require("./UserService");
 const StatusService = require("./StatusService");
 const ObjectName = require("../helpers/ObjectName");
+const AttendanceTypeService = require("./AttendanceTypeService");
+const ArrayList = require("../lib/ArrayList");
 class DailySummaryReportEmailService extends DataBaseService {
   async getReplenishData(params) {
     try {
@@ -419,10 +420,12 @@ class DailySummaryReportEmailService extends DataBaseService {
       let userDefaultTimeZone = await getSettingValue(Setting.USER_DEFAULT_TIME_ZONE, params.companyId);
       let todayDate = DateTime.getSQlFormattedDate(DateTime.getTodayDate(userDefaultTimeZone));
 
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: params?.companyId})
+
       // Query to retrieve additional day and shift data along with user, shift, and store associations
       const additionalDayAndShiftData = await Attendance.findAll({
         where: {
-          type: TYPE_ADDITIONAL_DAY,
+          type: {[Op.in]: additionalDayIds},
           date: todayDate,
         },
         order: [['created_at', 'DESC']],
@@ -726,7 +729,12 @@ class DailySummaryReportEmailService extends DataBaseService {
       const attendanceWhereCondition = {};
 
       attendanceWhereCondition.date = todayDate;
-      attendanceWhereCondition.type = TYPE_ADDITIONAL_DAY;
+
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: companyId })
+
+      if(ArrayList.isArray(additionalDayIds)){
+        attendanceWhereCondition.type = {[Op.in]: additionalDayIds};
+      }
 
       const query = {
         include: [

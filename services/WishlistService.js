@@ -7,7 +7,10 @@ const { Op } = require("sequelize");
 
 const Date = require("../lib/dateTime");
 const Boolean = require("../lib/Boolean");
-const validator = require("../lib/validator")
+const validator = require("../lib/validator");
+const DateTime = require("../lib/dateTime");
+const Number = require("../lib/Number");
+const Request = require("../lib/request");
 
 
 /**
@@ -80,6 +83,7 @@ const search = async (req, res) => {
     try {
 
     let { page, pageSize, search, sort, sortDir, pagination, status, location, startDate, endDate } = req.query;
+    let timeZone = Request.getTimeZone(req);
 
     const companyId = Request.GetCompanyId(req);
 
@@ -119,6 +123,8 @@ const search = async (req, res) => {
         throw { message: "Invalid sort order" };
     }
 
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
     let where = new Object();
 
     where.company_id = companyId;
@@ -152,6 +158,15 @@ const search = async (req, res) => {
             [Op.and]: {
                 [Op.gte]: startDate,
                 [Op.lte]: endDate,
+            },
+        };
+    }
+
+    if (date && Number.isNotNull(req.query?.date)) {
+        where.date = {
+            [Op.and]: {
+                [Op.gte]: date?.startDate,
+                [Op.lte]: date?.endDate,
             },
         };
     }

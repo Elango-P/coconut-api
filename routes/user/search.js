@@ -57,7 +57,9 @@ async function search(req, res, next) {
       leave_balance : "leave_balance",
       primary_shift_id: "primary_shift_id",
       primary_location_id: "primary_location_id",
-      salary:"salary"
+      salary:"salary",
+      current_location_id: "current_location_id",
+      current_shift_id: "current_shift_id"
     };
 
     const sortParam = sort || "name";
@@ -121,7 +123,15 @@ async function search(req, res, next) {
       sortColumn=` userEmployment."salary"`
     }
 
-    if(sortParam !== "salary" && sortParam !== "last_check_in" && sortParam !== "date_of_leaving" && sortParam !== "leave_balance" && sortParam !== "name" && sortParam !== "primary_shift_id" && sortParam !== "primary_location_id"){
+    if(sortParam == "current_location_id"){
+      sortColumn=` currentLocation."name"`
+    }
+
+    if(sortParam == "current_shift_id"){
+      sortColumn=` currentShift."name"`
+    }
+
+    if(sortParam !== "salary" && sortParam !== "last_check_in" && sortParam !== "date_of_leaving" && sortParam !== "leave_balance" && sortParam !== "name" && sortParam !== "primary_shift_id" && sortParam !== "primary_location_id" && sortParam !== "current_location_id" && sortParam !== "current_shift_id"){
       sortColumn=` "user_index".${sortParam}`
     }
 

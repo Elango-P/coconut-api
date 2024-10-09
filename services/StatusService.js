@@ -17,6 +17,7 @@ const ObjectName = require("../helpers/ObjectName");
 const DateHelper = require("../helpers/Date");
 const User = require("../helpers/User");
 const { userService } = require("./UserService");
+const OrderTypeService = require("./OrderTypeService");
 
 const create = async (req, res) => {
   try {
@@ -214,6 +215,12 @@ const sortDirParam = sortDir ? sortDir.toUpperCase() : "ASC";
     where.object_name = data.object_name;
   }
 
+  if (Number.isNotNull(data.order_type)) {
+      where.object_id = {
+        [Op.in]: data.order_type
+      }
+  }
+
 
   if (Number.isNotNull(ticket_type_id)) {
     where.ticket_type_id = ticket_type_id;
@@ -369,6 +376,7 @@ const sortDirParam = sortDir ? sortDir.toUpperCase() : "ASC";
         updateDistributionQuantity:
           value?.update_transferred_quantity == Status.UPDATE_DISTRIBUTION_QUANTITY_ENABLED ? true : false,
         default_due_date: value && value?.default_due_date ? value?.default_due_date : "",
+        defaultDueDate:value && value?.default_due_date === DateHelper.TODAY ? DateTime.toGetISOStringWithDayStartTime(new Date()): value?.default_due_date === DateHelper.TOMORROW ? DateTime.getTomorrow(new Date()):"",
         default_reviewer: value?.default_reviewer,
         default_reviewer_name: defaultReviewerName,
         default_reviewer_last_name: defaultReviewerLastName,

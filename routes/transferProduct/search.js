@@ -23,6 +23,7 @@ const ProductPriceService =  require("../../services/ProductPriceService");
 const { getSettingValue } = require("../../services/SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../../helpers/Setting");
 const Response = require("../../helpers/Response");
+const Numbers = require("../../lib/Number");
 
 
 
@@ -81,6 +82,7 @@ const search = async (req, res) => {
         let timeZone = Request.getTimeZone(req);
         let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
         let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
+        let date = DateTime.getCustomDateTime(params?.date, timeZone)
         //cretae where object
         let where = new Object();
 
@@ -164,6 +166,15 @@ const search = async (req, res) => {
                 },
             };
         }
+
+        if (date && Numbers.isNotNull(params?.date)) {
+            where.createdAt = {
+              [Op.and]: {
+                [Op.gte]: date?.startDate,
+                [Op.lte]: date?.endDate,
+              },
+            };
+          }
 
         // Search term
         const searchTerm = search ? search.trim() : null;

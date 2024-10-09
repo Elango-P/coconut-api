@@ -77,7 +77,7 @@ const list = async (req, res, params) => {
                     if (!saleExist) {
                       let createData = {
                         createdAt: new Date(),
-                        eta: new Date(),
+                        due_date: new Date(),
                         company_id: companyId,
                         project_id: ticketTypeData?.project_id,
                         summary: `Sales Settlement Missing - ${DateTime.Format(dates[j])} ${storeList[i].name} ${
@@ -118,7 +118,7 @@ const list = async (req, res, params) => {
     for (let i = 0; i < createDataArray.length; i++) {
       let createData = {
         createdAt: createDataArray[i].createdAt,
-        eta: createDataArray[i].eta,
+        due_date: createDataArray[i].due_date,
         company_id: createDataArray[i].company_id,
         project_id: createDataArray[i].project_id,
         summary: createDataArray[i].summary,

@@ -5,7 +5,7 @@ const { BAD_REQUEST, UPDATE_SUCCESS, OK } = require('../helpers/Response');
 const Url = require("../lib/Url");
 
 // Model
-const {  User, Comment  } = require('../db').models;
+const { User, Comment } = require('../db').models;
 const { Op } = require('sequelize');
 const validator = require("../lib/validator");
 const { getUserDetailById } = require("./UserService");
@@ -273,28 +273,31 @@ class CommentService {
         let companyId = Request.GetCompanyId(req);
         let userId = Request.getUserId(req);
         const user = await getUserDetailById(userId, companyId);
-        let auditLogMessage = new Array();
+        let auditLogMessage = [];
 
         if (userId) {
             auditLogMessage.push(`Updated By: ${concatName(user?.name, user?.last_name)}\n`);
         }
 
-        if (typeof createData?.message === 'string') {
-            auditLogMessage.push(`Comment: ${createData?.message}\n`);
-        }
-        else if (createData?.message) {
-            const commentDecoded = Url.RawURLDecode(createData?.message);
-            const commentData = JSON.parse(commentDecoded);
-            if (commentData?.blocks && commentData?.blocks.length > 0) {
-                for (let i = 0; i < commentData?.blocks.length; i++) {
-                    const { text } = commentData?.blocks[i];
-                    auditLogMessage.push(i == 0 ? `Comment: ${text}\n` : text)
-                }
+        let messageContent = createData?.message;
+
+        if (typeof messageContent === 'string') {
+            try {
+                messageContent = JSON.parse(messageContent);
+            } catch (error) {
+                auditLogMessage.push(`Comment: ${createData?.message}\n`);
             }
         }
 
-        if (auditLogMessage && auditLogMessage.length > 0) {
-            let message = auditLogMessage.join();
+        if (messageContent?.blocks && messageContent?.blocks.length > 0) {
+            let commentText = messageContent.blocks
+                .map((block, index) => (index === 0 ? `Comment: ${block.text}\n` : block.text))
+                .join('\n');
+            auditLogMessage.push(commentText);
+        }
+
+        if (auditLogMessage.length > 0) {
+            let message = auditLogMessage.join('');
             History.create(message, req, createData?.objectName, id);
         } else {
             History.create("Comment Added", req, createData?.objectName, id);

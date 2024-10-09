@@ -5,20 +5,28 @@ const Boolean = require("../lib/Boolean");
 const { typeOptions, statusOptions } = require("../helpers/AttendanceType");
 const DateTime = require("../lib/dateTime");
 const Number = require("../lib/Number");
-const { attendanceType,Attendance } = require('../db').models;
+const ArrayList = require("../lib/ArrayList");
+const Currency = require("../lib/currency");
+const { attendanceType,Attendance, UserEmployment } = require('../db').models;
 
 class AttendanceTypeService {
   static async create(params) {
     try{
     let createData = {
       name: params?.name ? params?.name:"",
-      type: Number.Get(params?.type),
       days_count: Number.Get(params?.days_count),
       status: Number.Get(params?.status),
       company_id: Number.Get(params?.company_id),
       cutoff_time: Number.Get(params?.cutoff_time),
       maximum_leave_allowed:Number.Get(params?.maximum_leave_allowed),
-      allow_late_checkin: params?.allow_late_checkin
+      allow_late_checkin: params?.allow_late_checkin,
+      is_leave: params?.is_leave,
+      is_working_day: params?.is_working_day,
+      is_additional_leave: params?.is_additional_leave,
+      is_additional_shift: params?.is_additional_shift,
+      is_additional_day: params?.is_additional_day,
+      is_absent: params?.is_absent,
+      allowed_days: params?.days
     };
     let response = await attendanceType.create(createData);
     return response && response;
@@ -103,14 +111,44 @@ class AttendanceTypeService {
     if(attendanceTypeData && attendanceTypeData.length > 0){
 
         for (let i = 0; i < attendanceTypeData.length; i++) {
-            const { name, id, status,type,days_count,cutoff_time,maximum_leave_allowed, allow_late_checkin} = attendanceTypeData[i];
+            const {
+              name,
+              id,
+              status,
+              type,
+              days_count,
+              cutoff_time,
+              maximum_leave_allowed,
+              allow_late_checkin,
+              is_leave,
+              is_working_day,
+              is_additional_leave,
+              is_additional_shift,
+              is_additional_day,
+              is_absent,
+              allowed_days
+            } = attendanceTypeData[i];
 
             let typeValue = typeOptions.find((data)=>data?.value == type)
             let statusValue = statusOptions.find((data)=> data?.value == status)
 
             data.push({
-                name, id, status: statusValue ,type: typeValue,days_count,cutoff_time,maximum_leave_allowed, allow_late_checkin
-            })
+              name,
+              id,
+              status: statusValue,
+              type: typeValue,
+              days_count,
+              cutoff_time,
+              maximum_leave_allowed,
+              allow_late_checkin,
+              is_leave,
+              is_working_day,
+              is_additional_leave,
+              is_additional_shift,
+              is_additional_day,
+              is_absent,
+              allowed_days
+            });
         }
     }
 
@@ -138,7 +176,14 @@ class AttendanceTypeService {
         status: Number.Get(params?.status),
         cutoff_time:Number.Get(params?.cutoff_time),
         maximum_leave_allowed:Number.Get(params?.maximum_leave_allowed),
-        allow_late_checkin: params?.allow_late_checkin
+        allow_late_checkin: params?.allow_late_checkin,
+        is_leave: params?.is_leave,
+        is_working_day: params?.is_working_day,
+        is_additional_leave: params?.is_additional_leave,
+        is_additional_shift: params?.is_additional_shift,
+        is_additional_day: params?.is_additional_day,
+        is_absent: params?.is_absent,
+        allowed_days: params?.days
       };
   
       let response = await attendanceType.update(createData,{
@@ -181,14 +226,18 @@ class AttendanceTypeService {
 
     try
     {
-    let { company_id } = params;
+    let { company_id, is_leave } = params;
 
     const where = {};
 
     where.company_id = company_id;
 
+    if(Number.isNotNull(is_leave)){
+      where.is_leave= is_leave
+    }
+
     const query = {
-      order: [["name", "ASC"]],
+      order: [["cutoff_time", "DESC"]],
       where,
     };
     
@@ -204,9 +253,10 @@ class AttendanceTypeService {
 
     if (attendanceTypeData && attendanceTypeData.length > 0  && params?.date !=="" ) {
       for (let i = 0; i < attendanceTypeData.length; i++) {
-        const { name, id, status, type, days_count,cutoff_time,maximum_leave_allowed } = attendanceTypeData[i];
-
-        let typeData = typeOptions.find(value => value.value ==type )
+        const { name, id, status, type, days_count,cutoff_time,maximum_leave_allowed,is_leave,is_working_day,
+          is_additional_leave,
+          is_additional_shift,
+          is_additional_day, is_absent } = attendanceTypeData[i];
 
         let warningMessage=""
 
@@ -218,7 +268,9 @@ class AttendanceTypeService {
         
         where.company_id = company_id
 
-        where.type = typeData.label
+        if(id){
+          where.type = id
+        }
 
         const totalCount = await Attendance.count({
           where: where,
@@ -241,7 +293,9 @@ class AttendanceTypeService {
         if (cutoff_time > 0){
           data.push({
             name,
+            label: name,
             id,
+           value:id,
             status: statusValue,
             type: typeValue,
             days_count,
@@ -256,11 +310,18 @@ class AttendanceTypeService {
                 ? `Leave should be applied before ${cutoff_time} hours`
                 : "",
             maximum_leave_allowed: maximum_leave_allowed,
+            is_leave,is_working_day,
+            is_additional_leave,
+            is_additional_shift,
+            is_additional_day,
+            is_absent
           });
         }else{
           data.push({
             name,
+            label: name,
             id,
+           value:id,
             status: statusValue,
             type: typeValue,
             days_count,
@@ -269,6 +330,12 @@ class AttendanceTypeService {
             description:"",
             leaveTypeNote:"",
             maximum_leave_allowed: maximum_leave_allowed,
+            is_leave,
+            is_working_day,
+            is_additional_leave,
+            is_additional_shift,
+            is_additional_day,
+            is_absent
           });
         }
       }
@@ -280,6 +347,163 @@ class AttendanceTypeService {
     console.log(err);
   }
   }
+
+  static async leaveType(params) {
+
+    try
+    {
+    let { company_id, is_leave, user_id } = params;
+
+    const where = {};
+
+    where.company_id = company_id;
+
+    if(Number.isNotNull(is_leave)){
+      where.is_leave= true
+    }
+
+    const query = {
+      order: [["cutoff_time", "DESC"]],
+      where,
+    };
+    
+    let endDate = DateTime.GetCurrentDateTime(new Date())
+
+    let hourData = DateTime.getHours(endDate,params?.date)
+
+    const useDetail = await UserEmployment.findOne({
+      where: { user_id: user_id, company_id: company_id },
+    });
+
+    const attendanceTypeList = await attendanceType.findAndCountAll(query);
+
+    const data = [];
+
+    const attendanceTypeData = attendanceTypeList && attendanceTypeList.rows;
+
+    if (attendanceTypeData && attendanceTypeData.length > 0  && params?.date !=="" ) {
+      for (let i = 0; i < attendanceTypeData.length; i++) {
+        const { name, id, status, type, days_count,cutoff_time,maximum_leave_allowed,   is_leave: isLeave,
+          is_working_day,
+          is_additional_leave,
+          is_additional_shift,
+          is_additional_day,
+          is_absent } = attendanceTypeData[i];
+
+        let warningMessage=""
+
+        let where={}
+
+        if(params?.date){
+          where.date = params?.date
+        }
+        
+        where.company_id = company_id
+
+        if(id){
+          where.type = id
+        }
+
+        where.login= { [Op.eq]: null }
+
+        const totalCount = await Attendance.count({
+          where: where,
+        });
+
+        let isEligible=true
+        
+        if(Number.GetFloat(hourData) <= Number.GetFloat(cutoff_time)){
+          warningMessage  ="Not Allowed";
+          isEligible = false
+        }
+        if(Number.Get(totalCount) >= Number.Get(maximum_leave_allowed)){
+          warningMessage = "Not Eligible";
+          isEligible = false
+        }
+
+        let typeValue = typeOptions.find((data) => data?.value == type);
+        let statusValue = statusOptions.find((data) => data?.value == status);
+
+        if (cutoff_time > 0){
+          data.push({
+            name,
+            label: name,
+            id,
+           value:id,
+            status: statusValue,
+            type: typeValue,
+            days_count,
+            isEnabled: isEligible,
+            warningMessage: warningMessage,
+            description:
+              days_count > 0
+                ? `${days_count} days salary ${Currency.calculateDailySalary(useDetail?.salary,30) * days_count} will be deducated`
+                : "",
+            leaveTypeNote:
+              cutoff_time > 0
+                ? `Leave should be applied before ${cutoff_time} hours`
+                : "",
+            maximum_leave_allowed: maximum_leave_allowed,
+            is_leave: isLeave,
+            is_working_day,
+            is_additional_leave,
+            is_additional_shift,
+            is_additional_day,
+            is_absent,
+            deductedSalary: (Currency.calculateDailySalary(useDetail?.salary,30) * days_count)
+          });
+        }else{
+          data.push({
+            name,
+            label: name,
+            id,
+           value:id,
+            status: statusValue,
+            type: typeValue,
+            days_count,
+            isEnabled: true,
+            warningMessage: warningMessage,
+            description:"",
+            leaveTypeNote:"",
+            maximum_leave_allowed: maximum_leave_allowed,
+            is_leave: isLeave,
+            is_working_day,
+            is_additional_leave,
+            is_additional_shift,
+            is_additional_day,
+            is_absent,
+            deductedSalary: (Currency.calculateDailySalary(useDetail?.salary,30) * days_count),
+            description:
+            days_count > 0
+              ? `${days_count} days salary (${Currency.IndianFormat(Currency.calculateDailySalary(useDetail?.salary,30) * days_count)}) will be deducated`
+              : "",
+          leaveTypeNote:
+            cutoff_time > 0
+              ? `Leave should be applied before ${cutoff_time} hours`
+              : "",
+          });
+        }
+      }
+    }
+    
+    return {
+      data
+    }
+  }catch(err){
+    console.log(err);
+  }
+  }
+
+  static async getAttendanceTypeId (where={}){
+    let attendanceTypeList = await attendanceType.findAll({
+      order:[["id","DESC"]],
+      where: where
+    });
+    let returnValue = ArrayList.isArray(attendanceTypeList) &&  attendanceTypeList.map((mapData)=> mapData?.id) || []
+    return returnValue;
+  }
+
+ 
 }
 
 module.exports = AttendanceTypeService;

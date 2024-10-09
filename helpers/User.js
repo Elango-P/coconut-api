@@ -11,6 +11,9 @@ const User = {
 	SECONDARY_TYPE:2,
 	LOGGED_IN_USER:-1,
 	LOGGED_IN_USER_TEXT: "Logged In User",
+	FORCE_LOGOUT_ENABLE : 2,
+	FORCE_LOGOUT_DISABLED : 0
+
 }
 
 module.exports = User;

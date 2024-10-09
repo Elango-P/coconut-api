@@ -38,7 +38,7 @@ const get = async(req, res) =>{
             response.replenishedProductsCount =  replenishedProductsCount;
         }
         
-        if (Number.isNotNull(req?.user?.current_shift_id) && Number.isNotNull(req?.user?.current_location_id)) {
+        if ((Number.isNotNull(req?.user?.current_shift_id) && Number.isNotNull(req?.user?.current_location_id)) || stockEntryManageOthersPermission) {
           let params={
             company_id: companyId,
             user_id: userId,

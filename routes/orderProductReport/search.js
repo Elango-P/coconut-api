@@ -52,8 +52,11 @@ async function search(req, res, next) {
       orderWhere.status={[Op.notIn]: statusIdsArray }
     }
 
-    const startDates = new Date(startDate);
-    const endDates = endDate ? new Date(endDate) : new Date();
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+    const startDates = new Date(date?.startDate);
+    const endDates = (date?.endDate && date) ? new Date(date?.endDate) : new Date();
+
+
     const dateArray = [];
 
     while (startDates <= endDates) {
@@ -84,6 +87,15 @@ async function search(req, res, next) {
         [Op.and]: {
           [Op.gte]: DateTime.toGMT(start_date,timeZone),
           [Op.lte]: DateTime.toGMT(end_date,timeZone),
+        },
+      };
+    }
+
+    if (date && Number.isNotNull(req.query.date)) {
+      orderWhere.order_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }

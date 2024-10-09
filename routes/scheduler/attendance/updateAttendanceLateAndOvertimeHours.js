@@ -5,7 +5,7 @@ const DateTime = require("../../../lib/dateTime");
 const Request = require('../../../lib/request');
 const History = require('../../../services/HistoryService');
 const schedulerJobCompanyService = require('../schedularEndAt');
-const { TYPE_LEAVE, TYPE_ADDITIONAL_LEAVE, TYPE_ABSENT } = require('../../../helpers/Attendance');
+const AttendanceTypeService = require("../../../services/AttendanceTypeService");
 
 module.exports = async function (req, res) {
   try {
@@ -25,11 +25,13 @@ module.exports = async function (req, res) {
           throw new err();
         }
       });
+      let exludeIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true,is_additional_day: true,is_absent: true, company_id: company_id})
+
       // Getting sale details
       let attendanceDetails = await Attendance.findAndCountAll({
         where: {
           company_id: company_id,
-          type: { [Op.notIn]: [TYPE_LEAVE, TYPE_ADDITIONAL_LEAVE, TYPE_ABSENT] }
+          type: { [Op.notIn]: exludeIds }
         },
       });
 

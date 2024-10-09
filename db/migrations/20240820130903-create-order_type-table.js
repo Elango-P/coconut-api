@@ -21,10 +21,7 @@ exports.up = async function up(queryInterface, Sequelize) {
           type: Sequelize.STRING,
           allowNull: false
         },
-        group: {
-          type: Sequelize.INTEGER,
-          allowNull: true
-        },
+       
         createdAt: {
           allowNull: false,
           type: Sequelize.DATE,
@@ -42,6 +39,14 @@ exports.up = async function up(queryInterface, Sequelize) {
           type: Sequelize.INTEGER,
         },
         show_customer_selection: {
+          allowNull: true,
+          type: Sequelize.INTEGER,
+        },
+        allow_store_order: {
+          allowNull: true,
+          type: Sequelize.INTEGER,
+        },
+        allow_delivery: {
           allowNull: true,
           type: Sequelize.INTEGER,
         },

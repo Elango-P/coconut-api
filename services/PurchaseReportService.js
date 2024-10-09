@@ -3,6 +3,8 @@ const { BAD_REQUEST, OK } = require("../helpers/Response");
 const DateTime = require("../lib/dateTime");
 const Boolean = require("../lib/Boolean");
 const validator = require("../lib/validator");
+const Request = require("../lib/request");
+const Number = require("../lib/Number");
 const {
   Purchase,
   Location,
@@ -13,6 +15,9 @@ const {
 class PurchaseReportService {
   static async getReport(req, res, next) {
     let { page, pageSize, search, sort, sortDir, pagination, user, startDate, endDate, location, account } = req.query;
+    let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+    
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
     if (isNaN(page)) {
@@ -113,6 +118,16 @@ class PurchaseReportService {
         },
       };
     }
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      where.purchase_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     let sortOrder = [];
     if (sort == "location") {
       sortOrder.push([{ model: Location, as: "location" }, "name", sortDir]);

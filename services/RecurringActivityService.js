@@ -114,6 +114,10 @@ class RecurringActivityService {
       updatedAt: "updatedAt",
       activityTypeName: "activityTypeName",
       role_name: "role_name",
+      type: "type",
+      date: "date",
+      day: "day",
+      month: "month",
     };
     const sortParam = sort || "createdAt";
     // Validate sortable fields is present in sort param
@@ -140,7 +144,7 @@ class RecurringActivityService {
     if (startDate && !endDate) {
       where.createdAt = {
         [Op.and]: {
-          [Op.gte]: DateTime.toGMT(start_date,timeZone),
+          [Op.gte]: DateTime.toGMT(start_date, timeZone),
         },
       };
     }
@@ -148,7 +152,7 @@ class RecurringActivityService {
     if (endDate && !startDate) {
       where.createdAt = {
         [Op.and]: {
-          [Op.lte]: DateTime.toGMT(end_date,timeZone),
+          [Op.lte]: DateTime.toGMT(end_date, timeZone),
         },
       };
     }
@@ -156,8 +160,8 @@ class RecurringActivityService {
     if (startDate && endDate) {
       where.createdAt = {
         [Op.and]: {
-          [Op.gte]: DateTime.toGMT(start_date,timeZone),
-          [Op.lte]: DateTime.toGMT(end_date,timeZone),
+          [Op.gte]: DateTime.toGMT(start_date, timeZone),
+          [Op.lte]: DateTime.toGMT(end_date, timeZone),
         },
       };
     }
@@ -167,7 +171,7 @@ class RecurringActivityService {
       where.assignee_id = data.user;
     }
 
-        // Search term
+    // Search term
     const searchTerm = search ? search.trim() : null;
     if (searchTerm) {
       where[Op.or] = [
@@ -188,16 +192,16 @@ class RecurringActivityService {
 
     let order = []
 
-    if(sort === "activityTypeName"){
+    if (sort === "activityTypeName") {
       order.push(['activityTypeDetail', 'name', sortDir])
     }
-    else if(sort === "name"){
+    else if (sort === "name") {
       order.push(["assignee", 'name', sortDir])
     }
-    else if(sort === "role_name"){
+    else if (sort === "role_name") {
       order.push(["roleData", 'role_name', sortDir])
     }
-    else{
+    else {
       order.push([sortableFields[sortParam], sortDirParam])
     }
 
@@ -209,7 +213,7 @@ class RecurringActivityService {
           required: false,
           model: User,
           as: "assignee",
-          attributes: ["name","last_name","media_url"],
+          attributes: ["name", "last_name", "media_url"],
         },
         {
           required: false,
@@ -246,17 +250,17 @@ class RecurringActivityService {
 
       for (let index = 0; index < activiteDetails.rows.length; index++) {
         const task = activiteDetails.rows[index];
-        const { id,  assignee_id, date, type, item, status, createdAt, day, month, activity_type, activityTypeDetail ,roleData, role_id,assignee, location_id, shift_id} = task.get();
+        const { id, assignee_id, date, type, item, status, createdAt, day, month, activity_type, activityTypeDetail, roleData, role_id, assignee, location_id, shift_id } = task.get();
         const dayValue = day && day.split(",");
 
-        let monthValue = monthOption.find((data)=>data?.value == month)
+        let monthValue = monthOption.find((data) => data?.value == month)
         data.push({
           id: id,
           month: monthValue,
           date: date,
           day: dayValue,
           status: status == Status.ACTIVE ? Status.ACTIVE_TEXT : Status.INACTIVE_TEXT,
-          createdAt: DateTime.getDateTimeByUserProfileTimezone(createdAt,timeZone),
+          createdAt: DateTime.getDateTimeByUserProfileTimezone(createdAt, timeZone),
           assignee_id: assignee_id,
           firstName: assignee?.name,
           lastName: assignee?.last_name,

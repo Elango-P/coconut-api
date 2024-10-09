@@ -43,6 +43,8 @@ const search = async (req, res) => {
       product,
       showTotalAmount
     } = req.query;
+
+    let timeZone = Request.getTimeZone(req);
     //get company Id from request
     const companyId = Request.GetCompanyId(req);
 
@@ -92,6 +94,17 @@ const search = async (req, res) => {
 
     if (product) {
       productDetailWhere.product_id = product;
+    }
+    
+    let date = DateTime.getCustomDateTime(req?.query?.date, timeZone)
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      purchaseWhere.purchase_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
     }
 
     if (startDate && !endDate) {

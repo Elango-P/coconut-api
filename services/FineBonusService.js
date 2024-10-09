@@ -33,6 +33,7 @@ const { getSettingValue } = require("./SettingService");
 const ArrayList = require("../lib/ArrayList");
 const ObjectHelper = require("../helpers/ObjectHelper");
 const Where = require("../lib/Where");
+const fineType = require("../helpers/FineType");
 
 class fineService {
     // Create a new paymentService
@@ -51,7 +52,9 @@ class fineService {
                 companyId  = Request.GetCompanyId(req);
             }
 
-            const statusData = await statusService.getFirstStatusDetail(ObjectName.FINE,data?.company_id ? data?.company_id :  companyId);
+            let objectName = data && data?.objectName ? data?.objectName : "";
+
+            const statusData = await statusService.getFirstStatusDetail(objectName ? objectName : ObjectName.FINE,data?.company_id ? data?.company_id :  companyId);
             if(data && data.amount > 0){
             const createData = {
                 date:data.date ? DateTime.UTCtoLocalTime(data.date) : DateTime.getSQlFormattedDate(new Date()),
@@ -348,13 +351,13 @@ class fineService {
             ];
         }
 
-    let customDate = DateTime.getCustomDateTime(orderDate,timeZone)
+    let date = DateTime.getCustomDateTime(orderDate || req?.query?.date,timeZone)
 
-      if (Number.isNotNull(orderDate)) {
+      if (date && Number.isNotNull(orderDate || req?.query?.date)) {
       where.date = {
         [Op.and]: {
-          [Op.gte]: customDate?.startDate,
-          [Op.lte]: customDate?.endDate,
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
       }
@@ -424,8 +427,8 @@ class fineService {
           user: hasFineManageOthersPermission ? Number.isNotNull(user) ? user : null : req.user.id ,
           type: Number.isNotNull(type) ? type : null,
           status: (!hasFineManageOthersPermission && allowToViewIds && allowToViewIds.length > 0) ? Number.isNotNull(status) ? [status] : allowToViewIds  : Number.isNotNull(status) ? [status] :null,
-          startDate: customDate?.startDate ? customDate?.startDate: startDate,
-          endDate: customDate?.endDate ? customDate?.endDate: endDate,
+          startDate: date?.startDate ? date?.startDate: startDate,
+          endDate: date?.endDate ? date?.endDate: endDate,
           searchTerm,
           objectName: Number.isNotNull(req.query.object_name) ? req.query.object_name : null,
           objectId: Number.isNotNull(req.query.object_id) ? req.query.object_id : null
@@ -436,7 +439,7 @@ class fineService {
       const tagList = await Tag.findAll({
         where: {
           company_id: companyId,
-          type: isBonusType ? "BonusType" : "FineType",
+          type: isBonusType ? fineType.BONUS : fineType.FINE,
         },
       });
 

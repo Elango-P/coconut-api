@@ -27,7 +27,7 @@ async function process(result, isAdmin) {
 			additionalHours: attendance.additional_hours && attendance.additional_hours > 0 && DateTime.convertMinutesToTime(attendance.additional_hours) || "",
 			ipAddress: attendance.ip_address,
 			workedHours: DateTime.covertToHoursAndMinutes(attendance.worked_hours),
-			type: attendance.type,
+			type: attendance?.type,
 			typeText: types.getText(attendance.type),
 			status: attendance.status,
 			lateHoursStatus: attendance?.late_hours_status,
@@ -47,7 +47,9 @@ async function process(result, isAdmin) {
 			allow_goal_missing : attendance?.allow_goal_missing,
 			approve_late_check_in : attendance?.approve_late_check_in,
 			check_in_media_id: attendance?.check_in_media_id && await MediaService.getMediaURL(attendance?.check_in_media_id, attendance.company_id),
-			days_count: attendance?.days_count
+			days_count: attendance?.days_count,
+			typeName: attendance?.attendanceTypeDetail?.name,
+			attendanceTypeDetail: attendance?.attendanceTypeDetail
 		};
 	} catch (err) {
 		console.log(err);

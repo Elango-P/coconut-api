@@ -117,26 +117,24 @@ class UserDeviceInfoService {
 
   static bulkDelete = async (req, res) => {
     try {
-      const { id } = req.body;
-      const selectedIds = id && id.selectedIds;
-
-      const company_id = Request.GetCompanyId(req);
-
-      if (selectedIds && Array.isArray(selectedIds) && selectedIds.length > 0) {
-        UserDeviceInfo.destroy({
-          where: { id: { [Op.in]: selectedIds }, company_id: company_id },
-        })
-          .then(() => {
-            res.json(200, { message: 'Device Information Deleted' });
-          })
-          .catch((err) => {
-            return res.json(400, { message: err.message });
-          });
-      } else {
-        res.json(400, { message: 'Select Devices' });
+      const ids = req?.body?.selectedId;
+      if (!ids || !Array.isArray(ids)) {
+        return res.status(400).json({ message: "Invalid IDs provided" });
       }
+  
+      const company_id = Request.GetCompanyId(req);
+  
+      for (const id of ids) {
+        await UserDeviceInfo.destroy({ where: { id: id, company_id: company_id } });
+
+        await History.create("Device Information Deleted", req, ObjectName.USER_INFO, id);
+      }
+  
+      res.json(200, { message: 'Device Information Deleted' });
+  
     } catch (err) {
       console.log(err);
+      return res.status(400).json({ message: err.message });
     }
   };
 
@@ -243,6 +241,16 @@ class UserDeviceInfoService {
         [Op.and]: {
           [Op.gte]: DateTime.toGMT(start_date,timeZone),
           [Op.lte]: DateTime.toGMT(end_date,timeZone),
+        },
+      };
+    }
+    let date = DateTime.getCustomDateTime(req.query.date, timeZone)
+
+    if (date && Number.isNotNull(req.query.date)) {
+      where.created_at = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }

@@ -87,6 +87,7 @@ class accountLoyaltyService {
       id: 'id',
       createdAt: 'createdAt',
       name : 'name',
+      points: "points"
     };
     const sortParam = sort || 'createdAt';
     if (!Object.keys(sortableFields).includes(sortParam)) {
@@ -112,6 +113,16 @@ if(account_id){
         },
       ];
     }
+
+    let order = []
+
+    if(sort === "name"){
+      order.push(['category', 'name', sortDir])
+    }
+    else{
+      order.push([sortableFields[sortParam], sortDirParam])
+    }
+
     const query = {
       attributes: {
         exclude: ['deletedAt']
@@ -122,7 +133,7 @@ if(account_id){
           as: "category",
       },
       ],
-      order: [[sortableFields[sortParam], sortDirParam]],
+      order,
       where,
     };
     if (validator.isEmpty(pagination)) {

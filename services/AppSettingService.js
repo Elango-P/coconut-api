@@ -79,13 +79,13 @@ class AppSettingService {
             }
         });
 
-        //if(!getAppDetail){
-        //    throw { message:"Detail Not Found"}
-        //}
+        if(!getAppDetail){
+            throw { message:"Detail Not Found"}
+        }
 
         let appSettingList = await AppSetting.findAll({
             where: {
-                app_id: 1,
+                app_id: getAppDetail?.id,
                 company_id: companyId
             }
         })

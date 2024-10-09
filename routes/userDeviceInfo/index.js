@@ -12,5 +12,5 @@ module.exports = (server) => {
     server.get("/v1/userDeviceInfo/search", verifyToken, search);
     server.put("/v1/userDeviceInfo/status/:id", verifyToken, statusUpdate);
     server.put("/v1/userDeviceInfo/:id", verifyToken, update);
-	server.post("/v1/userDeviceInfo/bulkUpdate", verifyToken, bulkDelete);
+	server.del("/v1/userDeviceInfo/bulkDelete", verifyToken, bulkDelete);
 }

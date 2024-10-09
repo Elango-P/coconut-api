@@ -66,7 +66,6 @@ class CandidateService {
         where: { company_id: companyId, object_name: ObjectName.CANDIDATE, object_id: id },
         order: [["createdAt", "ASC"]],
       });
-      console.log(mediaData);
       for (let i = 0; i < mediaData.length; i++) {
         const { id } = mediaData[i];
         let mediaUrl = await mediaService.getMediaURL(id, companyId);

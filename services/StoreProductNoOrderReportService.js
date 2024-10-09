@@ -8,6 +8,8 @@ const validator = require("../lib/validator");
 const Boolean = require('../lib/Boolean');
 const { getSettingValue } = require("./SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../helpers/Setting");
+const Request = require("../lib/request");
+const Number = require("../lib/Number");
 
 const list = async (req, res, next) => {
   try {
@@ -19,6 +21,10 @@ const list = async (req, res, next) => {
     const params = req.query;
 
     let companyId = req.user && req.user.company_id;
+
+    let timeZone = Request.getTimeZone(req)
+
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
 
     let { page, pageSize, search, sort, sortDir, pagination, product, startDate, endDate, location } = params;
 
@@ -62,7 +68,6 @@ const list = async (req, res, next) => {
       throw { message: 'Invalid sort order' };
     }
 
-    let timeZone = Request.getTimeZone(req);
     let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
     let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
 
@@ -118,6 +123,16 @@ const list = async (req, res, next) => {
         },
       };
     }
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      where.last_order_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (params.brand) {
       whereProductIndex.brand_id = params.brand.split(',');
     }

@@ -17,6 +17,7 @@ const StatusService = require('../../services/StatusService');
 const { getSettingValue } = require("../../services/SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../../helpers/Setting");
 const Request = require("../../lib/request");
+const Numbers = require("../../lib/Number");
 
 async function search(req, res, next) {
   try {
@@ -42,19 +43,20 @@ async function search(req, res, next) {
     const locationWhere = {};
     let { startDate, endDate, location, type, shift, paymentType, sortType } = req.query;
 
-    if (!startDate) {
-      return res.json(400, { message: 'Start Date Is Required' });
-    }
+
 
     let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
     let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
     let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
 
     let total = 0;
     let totalCount = 0;
 
-
-    orderWhere.status = { [Op.ne]: statusDetail.id }
+    if(Numbers.isNotNull(statusDetail)){
+      orderWhere.status = { [Op.ne]: statusDetail?.id }
+    }
 
     if (startDate && !endDate) {
       orderWhere.date = {
@@ -80,6 +82,16 @@ async function search(req, res, next) {
         },
       };
     }
+
+    if (date && Numbers.isNotNull(req?.query?.date)) {
+      orderWhere.date = {
+        [Op.and]: {
+          [Op.gte]:  date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (location) {
       orderWhere.store_id = location;
     }

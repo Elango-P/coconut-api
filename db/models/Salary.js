@@ -158,6 +158,10 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.DECIMAL,
 			allowNull: true,
 		},
+		attendance_count: {
+			type: DataTypes.TEXT,
+			allowNull: true,
+		},
 	}, {
 		tableName: "salary",
 		timestamps: true,

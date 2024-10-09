@@ -1,5 +1,7 @@
 const fineType = {
-    STATUS_DRAFT:"Draft"
+    STATUS_DRAFT:"Draft",
+    BONUS:"BonusType",
+    FINE:"FineType",
 }
 
 module.exports = fineType;

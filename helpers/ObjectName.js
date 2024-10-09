@@ -13,6 +13,7 @@ const ObjectName = {
     APP : "APP",
     APP_VERISON : "APP_VERSION",
     BILL:"BILL",
+    BONUS: "BONUS",
     BANK_SETTLEMENT:"BANK_SETTLEMENT",
     BILL_GST_STATUS:"BILL_GST_STATUS",
     CUSTOMER: "CUSTOMER",
@@ -95,5 +96,6 @@ const ObjectName = {
     VENDOR: "VENDOR",
     VISITOR:"VISITOR",
     ORDER_TYPE:"ORDER_TYPE",
+    RATING_TYPE:"RATING_TYPE"
 };
 module.exports = ObjectName;

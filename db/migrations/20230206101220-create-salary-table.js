@@ -165,6 +165,11 @@ exports.up = async function up(queryInterface, Sequelize) {
 					type: Sequelize.DECIMAL,
 					allowNull: true,
 				},
+				attendance_count: {
+					type: Sequelize.TEXT,
+					allowNull: true,
+				},
+				
 
 			});
 		};

@@ -44,7 +44,7 @@ const create = async (req, res) => {
       where: { company_id },
       attributes: ['item'],
     };
-    
+
     let lastItemData = await RecurringTaskModel.findOne(query);
     let item;
     let itemNumberData = lastItemData && lastItemData.get('item');
@@ -53,14 +53,14 @@ const create = async (req, res) => {
     } else {
       item = itemNumberData + 1;
     }
-    
+
     let dayValue;
     try {
       dayValue = body?.day && JSON.parse(body?.day);
     } catch (error) {
       dayValue = body?.day;
     }
-    
+
     let createData = {
       summary: body.summary || '',
       day: dayValue ? dayValue.join(',') : '',
@@ -91,7 +91,7 @@ const create = async (req, res) => {
       message: 'Task Added',
       taskDetails: taskDetails,
     });
-    
+
     res.on('finish', () => {
       // Create system log for task creation
       History.create("Task Added", req, ObjectName.RECURRING_TASK, taskDetails.id);
@@ -182,23 +182,31 @@ async function getdetail(req, res, next) {
 }
 
 async function search(req, res, next) {
+
   let { page, pageSize, search, sort, sortDir, pagination, user } = req.query;
+
   // Validate if page is not a number
   page = page ? parseInt(page, 10) : 1;
+
   if (isNaN(page)) {
     return res.json(Response.BAD_REQUEST, { message: 'Invalid page' });
   }
+
   // Validate if page size is not a number
   pageSize = pageSize ? parseInt(pageSize, 10) : 25;
   if (isNaN(pageSize)) {
     return res.json(Response.BAD_REQUEST, { message: 'Invalid page size' });
   }
+
   const companyId = req.user && req.user.company_id;
+
   if (!companyId) {
     return res.json(Response.BAD_REQUEST, { message: 'Company Not Found' });
   }
+
   // Sortable Fields
   const validOrder = ['ASC', 'DESC'];
+
   const sortableFields = {
     id: 'id',
     summary: 'summary',
@@ -207,23 +215,34 @@ async function search(req, res, next) {
     status: 'status',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
+    type: "type",
+    date: "date",
+    day: "day",
+    month: "month",
   };
+
   const sortParam = sort || 'createdAt';
+
   // Validate sortable fields is present in sort param
   if (!Object.keys(sortableFields).includes(sortParam)) {
     return res.json(Response.BAD_REQUEST, {
       message: `Unable to sort task by ${sortParam}`,
     });
   }
+
   const sortDirParam = sortDir ? sortDir.toUpperCase() : 'DESC';
+
   // Validate order is present in sortDir param
   if (!validOrder.includes(sortDirParam)) {
     return res.json(Response.BAD_REQUEST, { message: 'Invalid sort order' });
   }
 
   const where = {};
+
   const data = req.query;
+
   const startDate = data.startDate;
+
   // startDate filter
   const endDate = data.endDate;
   let timeZone = Request.getTimeZone(req);
@@ -233,24 +252,26 @@ async function search(req, res, next) {
   if (startDate && !endDate) {
     where.createdAt = {
       [Op.and]: {
-        [Op.gte]: DateTime.toGMT(start_date,timeZone),
+        [Op.gte]: DateTime.toGMT(start_date, timeZone),
       },
     };
   }
+
   // endDate filter
   if (endDate && !startDate) {
     where.createdAt = {
       [Op.and]: {
-        [Op.lte]: DateTime.toGMT(end_date,timeZone),
+        [Op.lte]: DateTime.toGMT(end_date, timeZone),
       },
     };
   }
+
   // startDate and endDate filter
   if (startDate && endDate) {
     where.createdAt = {
       [Op.and]: {
-        [Op.gte]: DateTime.toGMT(start_date,timeZone),
-        [Op.lte]: DateTime.toGMT(end_date,timeZone),
+        [Op.gte]: DateTime.toGMT(start_date, timeZone),
+        [Op.lte]: DateTime.toGMT(end_date, timeZone),
       },
     };
   }
@@ -263,6 +284,7 @@ async function search(req, res, next) {
       where.assignee_id = userId;
     }
   }
+
   // user filter
   if (user) {
     where.assignee_id = data.user;
@@ -273,15 +295,19 @@ async function search(req, res, next) {
   }
 
   where.company_id = companyId;
+
   // Search by name
   const summary = data.summary;
+
   if (summary) {
     where.summary = {
       $like: `%${summary}%`,
     };
   }
+
   // Search term
   const searchTerm = search ? search.trim() : null;
+
   if (searchTerm) {
     where[Op.or] = [
       {
@@ -292,6 +318,7 @@ async function search(req, res, next) {
       literal(`"assignee"."name" || ' ' || "assignee"."last_name" ILIKE '%${searchTerm}%'`)
     ];
   }
+
   const query = {
     order:
       sort !== 'name'
@@ -303,7 +330,7 @@ async function search(req, res, next) {
         required: false,
         model: User,
         as: 'assignee',
-        attributes: ['name','last_name','media_url'],
+        attributes: ['name', 'last_name', 'media_url'],
       },
       {
         required: false,
@@ -323,16 +350,18 @@ async function search(req, res, next) {
     ],
   };
 
+
   if (validator.isEmpty(pagination)) {
     pagination = true;
   }
+
   if (Boolean.isTrue(pagination)) {
     if (pageSize > 0) {
       query.limit = pageSize;
       query.offset = (page - 1) * pageSize;
     }
   }
-  const company_id = Request.GetCompanyId(req);
+
   try {
     // Get task list and count
     const taskDetails = await RecurringTaskModel.findAndCountAll(query);
@@ -368,6 +397,7 @@ async function search(req, res, next) {
       const dayValue = day && day.split(',');
 
       let monthValue = monthOption.find((data) => data?.value == month);
+
       data.push({
         id: id,
         summary: summary,
@@ -425,6 +455,10 @@ const update = async (req, res) => {
       dayValue = body?.day;
     }
 
+    const recurringTaskdetails = await RecurringTaskModel.findOne({
+      where: { id: taskId, company_id: company_id },
+    })
+
     let updateData = {};
 
     if (body.summary) {
@@ -434,10 +468,10 @@ const update = async (req, res) => {
       body.taskType == TaskType.MONTHLY
         ? null
         : body.taskType == TaskType.ANNUALLY
-        ? null
-        : body.taskType == TaskType.DAILY
-        ? null
-        : dayValue.join(',');
+          ? null
+          : body.taskType == TaskType.DAILY
+            ? null
+            : dayValue.join(',');
     if (body.date) {
       updateData.date = body.taskType == TaskType.DAILY ? null : body.date;
     }
@@ -485,13 +519,74 @@ const update = async (req, res) => {
     });
     res.on('finish', () => {
       // Create system log for task creation
-      History.create("Task Updated", req, ObjectName.RECURRING_TASK, taskId);
+      createAuditLogs(recurringTaskdetails, updateData, req, taskId);
     });
   } catch (err) {
     console.log(err);
     return res.json(Response.BAD_REQUEST, { message: err.message });
   }
 };
+
+async function createAuditLogs(olddata, updatedData, req, taskId) {
+
+  let companyId = Request.GetCompanyId(req);
+  let auditLogMessage = new Array();
+
+  if (
+    updatedData?.summary &&
+    olddata?.summary !== updatedData.summary
+  ) {
+    if (olddata?.summary !== updatedData.summary) {
+      auditLogMessage.push(`Summary Updated To ${updatedData?.summary}\n`);
+    }
+  }
+
+  if (updatedData?.type && updatedData?.type !== olddata.type) {
+    if (olddata?.type !== updatedData?.type) {
+      auditLogMessage.push(`Type Updated To ${updatedData?.type}\n`);
+    }
+  }
+
+  if (updatedData?.assignee_id && olddata?.assignee_id !== updatedData?.assignee_id) {
+    if (olddata?.assignee_id !== updatedData?.assignee_id) {
+      assigneeDetails = await User.findOne({
+        where: { id : updatedData?.assignee_id, company_id: companyId}
+      })
+      auditLogMessage.push(`Assignee Updated To ${String.concatName(assigneeDetails?.name, assigneeDetails?.last_name)}\n`);
+    }
+  }
+
+  if (updatedData?.start_date && updatedData?.start_date !== olddata.start_date) {
+    if (olddata?.start_date !== updatedData?.start_date) {
+      auditLogMessage.push(`Date Updated To ${DateTime.Format(updatedData?.start_date)}\n`);
+    }
+  }
+
+  if (updatedData?.ticket_type_id && updatedData?.ticket_type_id !== olddata.ticket_type_id) {
+    if (olddata?.ticket_type_id !== updatedData?.ticket_type_id) {
+      let ticketTypeDetails = await ProjectTicketType.findOne({
+        where: {id: updatedData?.ticket_type_id , company_id: companyId}
+      })
+      auditLogMessage.push(`Ticket Type Updated To ${ticketTypeDetails?.name}\n`);
+    }
+  }
+
+  if (updatedData?.project_id && updatedData?.project_id !== olddata.project_id) {
+    if (olddata?.project_id !== updatedData?.project_id) {
+      let projectDetails = await Project.findOne({
+        where: {id: updatedData?.project_id , company_id: companyId}
+      })
+      auditLogMessage.push(`Ticket Type Updated To ${projectDetails?.name}\n`);
+    }
+  }
+
+  if (auditLogMessage && auditLogMessage.length > 0) {
+    let message = auditLogMessage.join();
+    History.create(message, req, ObjectName.RECURRING_TASK, taskId);
+  } else {
+    History.create("Recurring Task Updated", req, ObjectName.RECURRING_TASK, taskId);
+  }
+}
 
 const del = async (req, res) => {
   try {
@@ -541,7 +636,7 @@ const updateStatus = async (req, res, next) => {
     });
 
     res.on('finish', async () => {
-      History.create("Task Status updated", req, ObjectName.RECURRING_TASK, save.id);
+      History.create(`Recurring Task Status updated to ${data.status === Status.ACTIVE ? Status.ACTIVE_TEXT  : Status.INACTIVE_TEXT}`, req, ObjectName.RECURRING_TASK, id);
     });
   } catch (err) {
     console.log(err);
@@ -569,7 +664,7 @@ const CreateRecurringTask = async (req, details, companyId, date) => {
       assignee_id: details?.assignee_id,
       type_id: details?.ticket_type_id,
       recurring_task_id: details?.id,
-      eta: date,
+      due_date: date,
       systemUser:systemUser,
       ticket_date: date
     };
@@ -683,6 +778,7 @@ const getActiveTasks = async (params) => {
       where: {
         object_name: ObjectName.RECURRING_TASK,
         company_id: params?.companyId,
+        status: Status.ACTIVE,
         [Op.and]: [
           {
             [Op.or]: [{ end_date: null }, { end_date: { [Op.gte]: DateTime.shortMonthDate(new Date()) } }],

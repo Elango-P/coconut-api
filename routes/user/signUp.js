@@ -106,7 +106,11 @@ async function SignUp(req, res, next) {
         })
 
         if(!accountDetail){
-            let typeIds = await AccountTypeService.getAccountTypeByCategory( Account.CATEGORY_CUSTOMER,onlineConfigSetting.companyId)
+            let params={
+                category: Account.CATEGORY_CUSTOMER,
+                companyId: onlineConfigSetting.companyId
+              }
+            let typeIds = await AccountTypeService.getAccountTypeByCategory(params)
             accountDetail = await account.create({
                 name: `${data.name}`,
                 mobile: data.mobileNumber,

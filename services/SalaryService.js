@@ -1,13 +1,20 @@
-const { Attendance, User: UserModel, UserEmployment, Holiday, Salary, FineBonus,Shift} = require('../db').models;
-const { Op } = require('sequelize');
-const DataBaseService = require('../lib/dataBaseService');
+const {
+  Attendance,
+  User: UserModel,
+  UserEmployment,
+  Holiday,
+  Salary,
+  FineBonus,
+  Shift,
+  Tag,
+} = require("../db").models;
+const { Op, Sequelize, QueryTypes } = require("sequelize");
+const DataBaseService = require("../lib/dataBaseService");
 const UserEmploymentService = new DataBaseService(UserEmployment);
-const String = require('../lib/string');
-const Attendances = require('../helpers/Attendance');
-const DateTime = require('../lib/dateTime');
-const Number = require('../lib/Number');
-const salary = require("../helpers/Salary");
-const Response = require('../helpers/Response');
+const String = require("../lib/string");
+const DateTime = require("../lib/dateTime");
+const Number = require("../lib/Number");
+const Response = require("../helpers/Response");
 const ArrayList = require("../lib/ArrayList");
 const { getSettingValueByObject } = require("./SettingService");
 const Setting = require("../helpers/Setting");
@@ -18,225 +25,374 @@ const StatusService = require("./StatusService");
 const Status = require("../helpers/Status");
 const Currency = require("../lib/currency");
 const Month = require("../lib/Month");
+const db = require("../db");
+const fineType = require("../helpers/FineType");
+const { Type } = require("../helpers/AttendanceType");
 
 class SalaryService {
   static getCalculatedData = async (params) => {
     const { data, companyId, timeZone } = params;
 
-    let SalaryDate = DateTime.getMonthStartEndDates(data.month, data.year, timeZone);
+    let SalaryDate = DateTime.getMonthStartEndDates(
+      data.month,
+      data.year,
+      timeZone
+    );
 
-    const user_id = data.user?data.user:data.user_id;
-    const endDate = data.endDate?data.endDate:SalaryDate?.endDate;
-    const startDate = data.startDate?data.startDate:SalaryDate?.startDate;
+    const user_id = data.user ? data.user : data.user_id;
+    const endDate = data.endDate ? data.endDate : SalaryDate?.endDate;
+    const startDate = data.startDate ? data.startDate : SalaryDate?.startDate;
+
     try {
-
       // Get count based on type
-      const getAttendanceCount = async (type) => {
+      const getAttendanceData = async () => {
         try {
-        let where = {};
+          let whereCondition = "";
 
-        where.company_id = companyId;
+          companyId ? (whereCondition += ` a."company_id" = ${companyId}`) : "";
+          user_id ? (whereCondition += ` AND a."user_id" = ${user_id}`) : "";
+          startDate
+            ? (whereCondition += ` AND a."date" >= '${startDate}'`)
+            : "";
+          endDate ? (whereCondition += ` AND a."date" <= '${endDate}'`) : "";
 
-          if (user_id) {
-            where.user_id = user_id;
-          }
-          if (startDate && !endDate) {
-            where.date = {
-              [Op.and]: {
-                [Op.gte]: startDate,
-              },
-            };
-          }
+          let query = `
+        SELECT 
+          
+            at.name AS type_name, 
+            at.is_leave, 
+            at.is_working_day, 
+            COUNT(a.type) AS count, 
+            MAX(a.days_count) AS days_count,
+            MAX(a.type) AS type
 
-          if (endDate && !startDate) {
-            where.date = {
-              [Op.and]: {
-                [Op.lte]: endDate,
-              },
-            };
-          }
+        FROM 
+            Attendance AS a
+        LEFT JOIN 
+            attendance_type AS at ON a.type = at.id
+        WHERE 
+            ${whereCondition}
+        GROUP BY 
+            at.id, at.name, at.is_leave, at.is_working_day;
+    `;
 
-          if (startDate && endDate) {
-            where.date = {
-              [Op.and]: {
-                [Op.gte]: startDate,
-                [Op.lte]: endDate,
-              },
-            };
-          }
-          if (type) {
-            where.type = type;
-          }
-          if (type == Attendances.LOGIN) {
-            where.login = {
-              [Op.ne]: null,
-            };
-          }
+          // list
+          const list = await db.connection.query(query, {
+            type: QueryTypes.SELECT,
+          });
+          let attendanceList = list && list;
 
-          let attendanceCount = await Attendance.count({ where: where });
-          return attendanceCount;
+          let attendanceDataList = [];
+
+          if (attendanceList && attendanceList.length > 0) {
+            for (let i = 0; i < attendanceList.length; i++) {
+              attendanceDataList.push(attendanceList[i]);
+            }
+          }
+          return attendanceDataList;
         } catch (err) {
           console.log(err);
         }
       };
 
-      let attendanceCount = await getAttendanceCount()
+      let attendaceList = await getAttendanceData();
 
-      if(attendanceCount>0){
-
-      let totalAdditionalMinutes = await Attendance.sum("additional_hours",{
-        where:{user_id : user_id,date : {
-          [Op.and]: {
-            [Op.gte]: startDate,
-            [Op.lte]: endDate,
-          }},
-          company_id : companyId},
-      
-      });
-      let additional_hours = DateTime.HoursAndMinutes(totalAdditionalMinutes)
-      // Get Store list and count
-      const userDetail = await UserModel.findOne({
-        where: {
-          id: user_id,
-          company_id: companyId,
-        },
-      });
-
-  let completeStatus = await StatusService.getAllStatusByGroupId(ObjectName.FINE,Status.GROUP_COMPLETED,companyId)
-
-  let completeStatusIds = completeStatus && completeStatus.length>0 ?completeStatus?.map(value=>value.id):[]
-
-      let fineAmount = await FineBonus.sum('amount', {
-        where: {
-          user: Number.Get(user_id),
-          company_id: companyId,
-          status:{[Op.in]:completeStatusIds},
-          date: {
-            [Op.and]: {
-              [Op.gte]: startDate,
-              [Op.lte]: endDate,
-            },
-          },
-        },
-      });
-
-
-
-      const userEmployeeDetails = await UserEmploymentService.findOne({
-        where: {
-          user_id: user_id,
-          company_id: companyId,
-        },
-      });
-
-      let monthlySalary =  Number.Get(userEmployeeDetails?.salary);
-
-      const attendanceList = [];
-      let roleWorkingDays = await getSettingValueByObject(Setting.USER_WORKING_DAYS, companyId, userDetail?.role, ObjectName.ROLE);
-
-      let workingDays = DateTime.getDaysInAMonth(startDate, endDate,roleWorkingDays);
-      let holidays;
-      let totalWorkingDays;
-
-      if (startDate && endDate) {
-        holidays = await Holiday.findAndCountAll({
+      if (attendaceList && attendaceList.length > 0) {
+        let totalAdditionalMinutes = await Attendance.sum("additional_hours", {
           where: {
+            user_id: user_id,
             date: {
-              [Op.between]: [startDate, endDate],
+              [Op.and]: {
+                [Op.gte]: startDate,
+                [Op.lte]: endDate,
+              },
             },
+            company_id: companyId,
           },
         });
 
-        totalWorkingDays = workingDays - holidays.count;
+        // Additional Hours
+        let additional_hours = DateTime.HoursAndMinutes(totalAdditionalMinutes);
+        // Get Store list and count
+        const userDetail = await UserModel.findOne({
+          where: {
+            id: user_id,
+            company_id: companyId,
+          },
+        });
+
+        let completeStatus = await StatusService.getAllStatusByGroupId(
+          ObjectName.FINE,
+          Status.GROUP_COMPLETED,
+          companyId
+        );
+
+        let completeStatusIds =
+          completeStatus && completeStatus.length > 0
+            ? completeStatus?.map((value) => value.id)
+            : [];
+
+        // Bonus Amount
+        let bonusAmountValue = 0;
+
+        const bonusTypeList = await Tag.findAll({
+          where: {
+            company_id: companyId,
+            type: fineType.BONUS,
+          },
+        });
+
+        if (!ArrayList.isArray(bonusTypeList)) {
+          const tagIds = bonusTypeList.map((tag) => tag.dataValues.id);
+          let bonusAmount = await FineBonus.sum("amount", {
+            where: {
+              user: Number.Get(user_id),
+              company_id: companyId,
+              status: { [Op.in]: completeStatusIds },
+              date: {
+                [Op.and]: {
+                  [Op.gte]: startDate,
+                  [Op.lte]: endDate,
+                },
+              },
+              type: tagIds,
+            },
+          });
+          bonusAmountValue = Number.GetFloat(bonusAmount);
+        }
+
+        // Fine Amount
+        let fineAmountValue = 0;
+
+        const fineTypeList = await Tag.findAll({
+          where: {
+            company_id: companyId,
+            type: fineType.FINE,
+          },
+        });
+
+        if (!ArrayList.isArray(fineTypeList)) {
+          const tagIds = fineTypeList.map((tag) => tag.dataValues.id);
+
+          let fineAmount = await FineBonus.sum("amount", {
+            where: {
+              user: Number.Get(user_id),
+              company_id: companyId,
+              status: { [Op.in]: completeStatusIds },
+              date: {
+                [Op.and]: {
+                  [Op.gte]: startDate,
+                  [Op.lte]: endDate,
+                },
+              },
+              type: tagIds,
+            },
+          });
+          fineAmountValue = Number.GetFloat(fineAmount);
+        }
+
+        const userEmployeeDetails = await UserEmploymentService.findOne({
+          where: {
+            user_id: user_id,
+            company_id: companyId,
+          },
+        });
+
+        // Monthly Salary
+        let monthlySalary = Number.Get(userEmployeeDetails?.salary);
+
+        const attendanceList = [];
+        let roleWorkingDays = await getSettingValueByObject(
+          Setting.USER_WORKING_DAYS,
+          companyId,
+          userDetail?.role,
+          ObjectName.ROLE
+        );
+
+        // Working Days
+        let workingDays = DateTime.getDaysInAMonth(
+          startDate,
+          endDate,
+          roleWorkingDays
+        );
+
+        let holidays;
+        let totalWorkingDays;
+
+        if (startDate && endDate) {
+          holidays = await Holiday.findAndCountAll({
+            where: {
+              date: {
+                [Op.between]: [startDate, endDate],
+              },
+            },
+          });
+
+          totalWorkingDays = workingDays - holidays.count;
+        }
+
+        const totalMonths = DateTime.getMonthCount(startDate, endDate);
+
+        // salary Per Day
+        let salaryPerDay = monthlySalary / totalWorkingDays;
+
+        let leaveDays = attendaceList.filter((value) => value.is_leave == true);
+
+        let leaveDaysData = [];
+        if (leaveDays && leaveDays.length > 0) {
+          for (let i = 0; i < leaveDays.length; i++) {
+            leaveDaysData.push({
+              amount:
+                leaveDays[i].count *
+                Number.GetFloat(salaryPerDay * leaveDays[i].days_count),
+              typeName: leaveDays[i].type_name,
+              count: leaveDays[i].count,
+              days_count: leaveDays[i].days_count,
+              type: Type.LEAVE_TEXT,
+
+
+            });
+          }
+        }
+
+        let workedDay = attendaceList.filter(
+          (value) => value.is_working_day == true
+        );
+
+        let workedDaysData = [];
+        if (workedDay && workedDay.length > 0) {
+          for (let i = 0; i < workedDay.length; i++) {
+            let salary =
+              workedDay[i].count *
+              Number.GetFloat(salaryPerDay * (workedDay[i].days_count - 1));
+            if (salary && Number.GetFloat(salary) > 0) {
+              workedDaysData.push({
+                amount: salary,
+                typeName: workedDay[i].type_name,
+                count: workedDay[i].count,
+                days_count: workedDay[i].days_count,
+                type: Type.WORKING_DAY_TEXT,
+
+              });
+            }
+          }
+        }
+
+        let mergedData = [...leaveDaysData, ...workedDaysData];
+
+        const attendanceCount= mergedData && mergedData.length>0 ? JSON.stringify(mergedData):"";
+        // total Leave Salary
+        const totalLeaveSalary = mergedData.reduce(
+          (sum, item) => sum + Number.GetFloat(item.leaveSalary || 0),
+          0
+        );
+
+        // total Worked Salary
+        const totalWorkedSalary = mergedData.reduce(
+          (sum, item) => sum + Number.GetFloat(item.workedSalary || 0),
+          0
+        );
+
+        // pf
+        let pf = Number.GetFloat(data.provident_fund);
+
+        // Pt
+        let pt = Number.GetFloat(data.professional_tax);
+
+        // medical insurance
+        let medical_insurance =
+          Number.GetFloat(data.medical_insurance) *
+          Number.GetFloat(totalMonths);
+
+        // Gratuity
+        let gratuity =
+          Number.GetFloat(data.gratuity) * Number.GetFloat(totalMonths);
+
+        // Other Deductions
+        let other_deductions =
+          Number.GetFloat(data.other_deductions) * Number.GetFloat(totalMonths);
+
+        // Other Allowances
+        let other_allowance =
+          Number.GetFloat(data.other_allowance) * Number.GetFloat(totalMonths);
+
+        // Tds
+        let tds = Number.GetFloat(data.tds) * Number.GetFloat(totalMonths);
+
+        // Additional Hour Amount
+        const additionalHourAmount =
+          (Number.GetFloat(totalAdditionalMinutes / 60) / 8) * salaryPerDay;
+
+        // Net Salary
+        let netSalaryAmount =
+          monthlySalary +
+          Number.truncateDecimal(totalWorkedSalary, 2) +
+          Number.GetFloat(bonusAmountValue) +
+          Number.GetFloat(data.other_allowance) +
+          Number.GetFloat(additionalHourAmount) -
+          (Number.truncateDecimal(totalLeaveSalary) +
+            Number.GetFloat(data.other_deductions) +
+            Number.GetFloat(fineAmountValue));
+
+        // Hra
+        let hra = netSalaryAmount
+          ? Number.GetFloat((netSalaryAmount / 2) * 0.5) *
+            Number.GetFloat(totalMonths)
+          : null;
+
+        // Basic
+        let basic = netSalaryAmount
+          ? Number.GetFloat(netSalaryAmount / 2) * Number.GetFloat(totalMonths)
+          : null;
+
+        // Standard Allowance
+        let standardAllowance = netSalaryAmount
+          ? Number.GetFloat(data.standard_allowance) *
+            Number.GetFloat(totalMonths)
+          : null;
+
+        // Special Allowance
+        let specialAllowance = netSalaryAmount
+          ? Number.GetFloat(netSalaryAmount - (hra + basic + standardAllowance))
+          : null;
+
+        attendanceList.push({
+          monthlySalary: monthlySalary,
+          user: userDetail && userDetail.id,
+          userName:
+            userDetail &&
+            String.concatName(userDetail.name, userDetail.last_name),
+          firstName: userDetail && userDetail.name,
+          LastName: userDetail && userDetail.last_name,
+          avatarUrl: userDetail && userDetail.media_url,
+          additional_hours: additional_hours || "",
+          startDate: startDate || "",
+          endDate: endDate || "",
+          totalWorkingDays: totalWorkingDays,
+          basic: basic,
+          pf: pf,
+          pt: pt,
+          medical_insurance: medical_insurance,
+          gratuity: gratuity,
+          hra: hra,
+          salaryPerDay: salaryPerDay,
+          bonus: bonusAmountValue,
+          special_allowance: specialAllowance,
+          tds: tds,
+          other_deductions: other_deductions,
+          id: Number.Get(data.id),
+          fine: Number.GetFloat(fineAmountValue),
+          additionalHourAmount: additionalHourAmount,
+          totalMinutes: totalAdditionalMinutes || "",
+          other_allowance: other_allowance,
+          data: data,
+          standardAllowance: standardAllowance,
+          net_salary: netSalaryAmount,
+          attendanceCount:attendanceCount
+        });
+
+        return attendanceList;
       }
-
-      const totalMonths = DateTime.getMonthCount(startDate, endDate);
-      
-
-      let salaryPerDay = monthlySalary / totalWorkingDays;
-
-      const additional = await getAttendanceCount(Attendances.TYPE_ADDITIONAL_DAY);
-
-      const login = await getAttendanceCount(Attendances.LOGIN);
-
-      const leave = await getAttendanceCount(Attendances.TYPE_LEAVE);
-
-      const absent = await getAttendanceCount(Attendances.TYPE_ABSENT);
-
-      const worked = await getAttendanceCount(Attendances.TYPE_WORKING_DAY);
-      
-      const additionalHourAmount = (Number.GetFloat(totalAdditionalMinutes/60)/8)* (salaryPerDay)
-      
-      let workedDaySalary = Number.Get(worked) * Number.GetFloat(salaryPerDay)
-
-      let hra = Number.GetFloat((workedDaySalary / 2) * 0.5) * Number.GetFloat(totalMonths);
-
-      let basic = Number.GetFloat( workedDaySalary / 2) * Number.GetFloat(totalMonths);
-
-      let standardAllowance = Number.GetFloat(data.standard_allowance) *Number.GetFloat(totalMonths);
-
-      let specialAllowance =  (Number.GetFloat(workedDaySalary - (hra + basic + standardAllowance)));
-
-      let leave_salary =  Number.GetFloat((leave + absent) * salaryPerDay)
-
-      let bonus = Number.GetFloat(data.bonus) * Number.GetFloat(totalMonths);
-
-      let additional_day_allowance = Number.GetFloat(additional) * Number.GetFloat(salaryPerDay);
-
-      let pf = Number.GetFloat(data.provident_fund);
-
-      let pt = Number.GetFloat(data.professional_tax);
-
-      let medical_insurance = Number.GetFloat(data.medical_insurance) * Number.GetFloat(totalMonths);
-
-      let gratuity = Number.GetFloat(data.gratuity)* Number.GetFloat(totalMonths);
-
-      let other_deductions = Number.GetFloat(data.other_deductions) *Number.GetFloat(totalMonths);
-
-      let other_allowance = Number.GetFloat(data.other_allowance) *Number.GetFloat(totalMonths);
-
-      let tds = Number.GetFloat(data.tds) * Number.GetFloat(totalMonths);
-
-      let fine = Number.GetFloat(fineAmount)
-
-      let netSalary =
-      Number.GetFloat(basic + hra + standardAllowance + specialAllowance + bonus + additional_day_allowance + additionalHourAmount + other_allowance)  -
-      Number.GetFloat(pf + pt + medical_insurance + gratuity + other_deductions + tds + fine);
-      attendanceList.push({
-        monthlySalary: monthlySalary,
-        user: userDetail && userDetail.id,
-        additional: additional,
-        total: login,
-        leave: leave,
-        absent: absent,
-        worked: worked,
-        userName: userDetail && String.concatName(userDetail.name, userDetail.last_name),
-        firstName: userDetail && userDetail.name,
-        LastName: userDetail && userDetail.last_name,
-        avatarUrl: userDetail && userDetail.media_url,
-        additional_hours: additional_hours || "",
-        startDate: startDate || '',
-        endDate: endDate || '',
-        totalWorkingDays: totalWorkingDays,
-        basic:  basic,
-        hra:  hra,
-        salaryPerDay:  salaryPerDay,
-        leave_salary:  leave_salary,
-        bonus:  bonus,
-        additional_day_allowance:  additional_day_allowance,
-        special_allowance:  specialAllowance,
-        net_salary:Number.roundOff(netSalary),
-        id:  Number.Get(data.id),
-        fine:fine,
-        additionalHourAmount:additionalHourAmount,
-        totalMinutes:totalAdditionalMinutes || "",
-        worked_days_salary:Number.roundOff(workedDaySalary),
-        other_allowance:other_allowance,
-        data:data
-      });
-
-      return attendanceList;
-    }
     } catch (err) {
       console.log(err);
     }
@@ -274,13 +430,11 @@ class SalaryService {
       for (let i = 0; i < reCalcuatedArray.length; i++) {
         let historyMessage = new Array();
         let value = reCalcuatedArray[i];
-        let data = reCalcuatedArray[i].data && reCalcuatedArray[i].data?.dataValues;
+        let data =
+          reCalcuatedArray[i].data && reCalcuatedArray[i].data?.dataValues;
         updateCalculatedData.user_id = value.user ? value.user : "";
         updateCalculatedData.working_days = value.totalWorkingDays;
-        updateCalculatedData.worked_days = value.worked;
-        updateCalculatedData.leave = value.leave;
-        updateCalculatedData.absent = value.absent;
-        updateCalculatedData.additional_days = value.additional;
+        updateCalculatedData.attendance_count = value.attendanceCount;
         updateCalculatedData.basic = Number.roundOff(value.basic);
         updateCalculatedData.hra = Number.roundOff(value.hra);
         updateCalculatedData.special_allowance = Number.roundOff(
@@ -290,14 +444,11 @@ class SalaryService {
         updateCalculatedData.monthly_salary = Number.roundOff(
           value.monthlySalary
         );
-        updateCalculatedData.additional_day_allowance = Number.roundOff(
-          value.additional_day_allowance
-        );
+
         updateCalculatedData.bonus = Number.roundOff(value.bonus);
         updateCalculatedData.salary_per_day = Number.roundOff(
           value.salaryPerDay
         );
-        updateCalculatedData.leave_salary = Number.roundOff(value.leave_salary);
         updateCalculatedData.fine = Number.roundOff(value.fine);
         updateCalculatedData.additional_hours = Number.roundOff(
           value.totalMinutes
@@ -305,44 +456,27 @@ class SalaryService {
         updateCalculatedData.additional_hours_salary = Number.roundOff(
           value.additionalHourAmount
         );
-        updateCalculatedData.worked_days_salary = Number.roundOff(
-          value.worked_days_salary
-        );
+
         updateCalculatedData.other_allowance = Number.roundOff(
           value.other_allowance
         );
 
-        if (Number.Get(data?.working_days) !== Number.Get(updateCalculatedData?.working_days)) {
+        if (
+          Number.Get(data?.working_days) !==
+          Number.Get(updateCalculatedData?.working_days)
+        ) {
           historyMessage.push(
             `Working Days changed to ${updateCalculatedData?.working_days}`
           );
         }
-        if (Number.Get(data?.worked_days) !== Number.Get(updateCalculatedData?.worked_days)) {
-          historyMessage.push(
-            `Worked Days changed to ${updateCalculatedData?.worked_days}`
-          );
-        }
-        if (Number.Get(data?.leave) !== Number.Get(updateCalculatedData?.leave)) {
-          historyMessage.push(
-            `Leave changed to ${updateCalculatedData?.leave}`
-          );
-        }
-        if (Number.Get(data?.absent) !== Number.Get(updateCalculatedData?.absent)) {
-          historyMessage.push(
-            `Absent changed to ${updateCalculatedData?.absent}`
-          );
-        }
+
         if (
-          Number.Get(data?.additional_days) !==
-          Number.Get(updateCalculatedData?.additional_days)
+          Number.Get(data?.basic) !== Number.Get(updateCalculatedData?.basic)
         ) {
           historyMessage.push(
-            `Additional Days changed to ${updateCalculatedData?.additional_days}`
-          );
-        }
-        if (Number.Get(data?.basic) !== Number.Get(updateCalculatedData?.basic)) {
-          historyMessage.push(
-            `Basic changed to ${Currency.IndianFormat(updateCalculatedData?.basic)}`
+            `Basic changed to ${Currency.IndianFormat(
+              updateCalculatedData?.basic
+            )}`
           );
         }
         if (Number.Get(data?.hra) != Number.Get(updateCalculatedData?.hra)) {
@@ -355,49 +489,55 @@ class SalaryService {
           Number.Get(updateCalculatedData?.special_allowance)
         ) {
           historyMessage.push(
-            `Special Allowance changed to ${Currency.IndianFormat(updateCalculatedData?.special_allowance)}`
-          );
-        }
-        if (Number.Get(data?.net_salary) !== Number.Get(updateCalculatedData?.net_salary)) {
-          historyMessage.push(
-            `Net Salary changed to ${Currency.IndianFormat(updateCalculatedData?.net_salary)}`
+            `Special Allowance changed to ${Currency.IndianFormat(
+              updateCalculatedData?.special_allowance
+            )}`
           );
         }
         if (
-          Number.Get(data?.monthly_salary) !== Number.Get(updateCalculatedData?.monthly_salary)
+          Number.Get(data?.net_salary) !==
+          Number.Get(updateCalculatedData?.net_salary)
         ) {
           historyMessage.push(
-            `Monthly Salary changed to ${Currency.IndianFormat(updateCalculatedData?.monthly_salary)}`
+            `Net Salary changed to ${Currency.IndianFormat(
+              updateCalculatedData?.net_salary
+            )}`
           );
         }
         if (
-          Number.Get(data?.additional_day_allowance) !==
-          Number.Get(updateCalculatedData?.additional_day_allowance)
+          Number.Get(data?.monthly_salary) !==
+          Number.Get(updateCalculatedData?.monthly_salary)
         ) {
           historyMessage.push(
-            `Additional Aay allowance changed to ${Currency.IndianFormat(updateCalculatedData?.additional_day_allowance)}`
-          );
-        }
-        if (Number.Get(data?.bonus) !== Number.Get(updateCalculatedData?.bonus)) {
-          historyMessage.push(
-            `Bonus changed to ${Currency.IndianFormat(updateCalculatedData?.bonus)}`
+            `Monthly Salary changed to ${Currency.IndianFormat(
+              updateCalculatedData?.monthly_salary
+            )}`
           );
         }
         if (
-          Number.Get(data?.salary_per_day) !== Number.Get(updateCalculatedData?.salary_per_day)
+          Number.Get(data?.bonus) !== Number.Get(updateCalculatedData?.bonus)
         ) {
           historyMessage.push(
-            `Salary per day changed to ${Currency.IndianFormat(updateCalculatedData?.salary_per_day)}`
+            `Bonus changed to ${Currency.IndianFormat(
+              updateCalculatedData?.bonus
+            )}`
           );
         }
-        if (Number.Get(data?.leave_salary) != Number.Get(updateCalculatedData?.leave_salary)) {
+        if (
+          Number.Get(data?.salary_per_day) !==
+          Number.Get(updateCalculatedData?.salary_per_day)
+        ) {
           historyMessage.push(
-            `Leave salary changed to ${Currency.IndianFormat(updateCalculatedData?.leave_salary)}`
+            `Salary per day changed to ${Currency.IndianFormat(
+              updateCalculatedData?.salary_per_day
+            )}`
           );
         }
         if (Number.Get(data?.fine) != Number.Get(updateCalculatedData?.fine)) {
           historyMessage.push(
-            `Fine changed to ${Currency.IndianFormat(updateCalculatedData?.fine)}`
+            `Fine changed to ${Currency.IndianFormat(
+              updateCalculatedData?.fine
+            )}`
           );
         }
         if (
@@ -413,22 +553,19 @@ class SalaryService {
           Number.Get(updateCalculatedData?.additional_hours_salary)
         ) {
           historyMessage.push(
-            `Additional Hours Salary changed to ${Currency.IndianFormat(updateCalculatedData?.additional_hours_salary)}`
+            `Additional Hours Salary changed to ${Currency.IndianFormat(
+              updateCalculatedData?.additional_hours_salary
+            )}`
           );
         }
         if (
-          Number.Get(data?.worked_days_salary) !=
-          Number.Get(updateCalculatedData?.worked_days_salary)
+          Number.Get(data?.other_allowance) !=
+          Number.Get(updateCalculatedData?.other_allowance)
         ) {
           historyMessage.push(
-            `Worked Days Salary changed to ${Currency.IndianFormat(updateCalculatedData?.worked_days_salary)}`
-          );
-        }
-        if (
-          Number.Get(data?.other_allowance) != Number.Get(updateCalculatedData?.other_allowance)
-        ) {
-          historyMessage.push(
-            `Other Allowance changed to ${Currency.IndianFormat(updateCalculatedData?.other_allowance)}`
+            `Other Allowance changed to ${Currency.IndianFormat(
+              updateCalculatedData?.other_allowance
+            )}`
           );
         }
 
@@ -458,23 +595,21 @@ class SalaryService {
       if (!ids || !Array.isArray(ids)) {
         return res.status(400).json({ message: "Invalid IDs provided" });
       }
-  
+
       const company_id = Request.GetCompanyId(req);
-  
+
       for (const id of ids) {
         await Salary.destroy({ where: { id: id, company_id: company_id } });
 
         await history.create("Salary Deleted", req, ObjectName.SALARY, id);
       }
-  
-      res.json(200, { message: 'Salary Deleted' });
-  
+
+      res.json(200, { message: "Salary Deleted" });
     } catch (err) {
       console.log(err);
       return res.status(400).json({ message: err.message });
     }
   }
-
 
   static async del(req, res) {
     try {
@@ -521,6 +656,8 @@ class SalaryService {
       const userData = await UserModel.findAll({
         where: { company_id: companyId },
         attributes: ["id", "name", "last_name"],
+        order: [["created_at", "ASC"]],
+        limit: 20,
       });
 
       let SalaryData = new Object();
@@ -570,12 +707,9 @@ class SalaryService {
           : "";
         createCalculatedData.working_days =
           reCalcuatedArray[i].totalWorkingDays;
-        createCalculatedData.worked_days = reCalcuatedArray[i].worked;
-        createCalculatedData.leave = reCalcuatedArray[i].leave;
-        createCalculatedData.absent = reCalcuatedArray[i].absent;
-        createCalculatedData.additional_days = reCalcuatedArray[i].additional;
         createCalculatedData.basic = Number.roundOff(reCalcuatedArray[i].basic);
         createCalculatedData.hra = Number.roundOff(reCalcuatedArray[i].hra);
+        createCalculatedData.attendance_count = reCalcuatedArray[i].attendanceCount;
         createCalculatedData.special_allowance = Number.roundOff(
           reCalcuatedArray[i].special_allowance
         );
@@ -585,16 +719,11 @@ class SalaryService {
         createCalculatedData.monthly_salary = Number.roundOff(
           reCalcuatedArray[i].monthlySalary
         );
-        createCalculatedData.additional_day_allowance = Number.roundOff(
-          reCalcuatedArray[i].additional_day_allowance
-        );
         createCalculatedData.bonus = Number.roundOff(reCalcuatedArray[i].bonus);
         createCalculatedData.salary_per_day = Number.roundOff(
           reCalcuatedArray[i].salaryPerDay
         );
-        createCalculatedData.leave_salary = Number.roundOff(
-          reCalcuatedArray[i].leave_salary
-        );
+
         createCalculatedData.fine = Number.roundOff(reCalcuatedArray[i].fine);
         createCalculatedData.status = status && status?.id;
         createCalculatedData.company_id = companyId;
@@ -607,12 +736,10 @@ class SalaryService {
         );
         createCalculatedData.month = Number.Get(data?.month);
         (createCalculatedData.year = Number.Get(data?.year)),
-          (createCalculatedData.worked_days_salary = Number.Get(
-            reCalcuatedArray[i]?.worked_days_salary
-          )),
           (createCalculatedData.other_allowance = Number.Get(
             reCalcuatedArray[i]?.other_allowance
           ));
+
         let salaryDetail = await Salary.create(createCalculatedData);
         let userDetail = userData.find(
           (value) => value.id == salaryDetail?.user_id
@@ -654,11 +781,6 @@ class SalaryService {
               `Salary added with working days ${salaryDetail?.working_days}\n`
             );
           }
-          if (Number.isNotNull(salaryDetail?.worked_days)) {
-            historyMessage.push(
-              `Salary added with worked days ${salaryDetail?.worked_days}\n`
-            );
-          }
 
           if (Number.isNotNull(salaryDetail?.basic)) {
             historyMessage.push(
@@ -682,13 +804,6 @@ class SalaryService {
               )}\n`
             );
           }
-          if (Number.isNotNull(salaryDetail?.worked_days_salary)) {
-            historyMessage.push(
-              `Salary added with worked days salary ${Currency.IndianFormat(
-                salaryDetail?.worked_days_salary
-              )}\n`
-            );
-          }
           if (Number.isNotNull(salaryDetail?.salary_per_day)) {
             historyMessage.push(
               `Salary added with salary per day ${Currency.IndianFormat(
@@ -696,44 +811,7 @@ class SalaryService {
               )}\n`
             );
           }
-          if (Number.isNotNull(salaryDetail?.additional_days)) {
-            historyMessage.push(
-              `Salary added with additional days ${salaryDetail?.additional_days}\n`
-            );
-            if (Number.isNotNull(salaryDetail?.additional_days_salary)) {
-              historyMessage.push(
-                `Salary added with additional days Salary ${Currency.IndianFormat(
-                  salaryDetail?.additional_days_salary
-                )}\n`
-              );
-            }
-          }
-          if (Number.isNotNull(salaryDetail?.leave)) {
-            historyMessage.push(
-              `Salary added with leave ${salaryDetail?.leave}\n`
-            );
-          }
-          if (Number.isNotNull(salaryDetail?.absent)) {
-            historyMessage.push(
-              `Salary added with absent ${salaryDetail?.absent}\n`
-            );
-          }
 
-          if (Number.isNotNull(salaryDetail?.leave_salary)) {
-            historyMessage.push(
-              `Salary added with leave salary ${Currency.IndianFormat(
-                salaryDetail?.leave_salary
-              )}\n`
-            );
-          }
-
-          if (Number.isNotNull(salaryDetail?.additional_day_allowance)) {
-            historyMessage.push(
-              `Salary added with additional day allowance ${Currency.IndianFormat(
-                salaryDetail?.additional_day_allowance
-              )}\n`
-            );
-          }
           if (Number.isNotNull(salaryDetail?.additional_hours)) {
             historyMessage.push(
               `Salary added with additional hours ${salaryDetail?.additional_hours}\n`
@@ -795,55 +873,66 @@ class SalaryService {
       }
       return true;
     } catch (err) {
-      
       console.log(err);
       throw err;
-
     }
-  }
+  };
   static async projectionReport(params) {
     try {
-      let {startDate, endDate,companyId,user,page, pageSize, sort, sortDir ,timeZone} =params
+      let {
+        startDate,
+        endDate,
+        companyId,
+        user,
+        page,
+        pageSize,
+        sort,
+        sortDir,
+        timeZone,
+      } = params;
 
       page = page ? parseInt(page, 10) : 1;
       if (isNaN(page)) {
         return res.json(Response.BAD_REQUEST, { message: "Invalid page" });
       }
-  
+
       // Validate if page size is not a number
       pageSize = pageSize ? parseInt(pageSize, 10) : 25;
       if (isNaN(pageSize)) {
         return res.json(Response.BAD_REQUEST, { message: "Invalid page size" });
       }
 
-    let where = {};
+      let date = DateTime.getCustomDateTime(params?.date, timeZone);
 
-    if(user){
-      where.user_id = user
-    }
-    where.date = {
-      [Op.and]: {
-        [Op.gte]: startDate,
-        [Op.lte]: endDate,
-      },
-    };
-    
+      let where = {};
+
+      if(user){
+        where.user_id = user;
+      }
+
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: params?.date && date ? date?.startDate : startDate,
+          [Op.lte]: params?.date && date ? date?.endDate : endDate,
+        },
+      };
+
       where.company_id = companyId;
 
       let attendanceData = await Attendance.findAll({
         where,
-        attributes:["id","user_id","additional_hours"],
+        attributes: ["id", "user_id", "additional_hours"],
         include: [
           {
             model: Shift,
-            as: 'shift',
-            attributes: ['name',"id","start_time","end_time"],
+            as: "shift",
+            attributes: ["name", "id", "start_time", "end_time"],
           },
-          
         ],
       });
 
-      let userIds = attendanceData && attendanceData.map(value=> value?.user_id)
+      let userIds =
+        attendanceData && attendanceData.map((value) => value?.user_id);
 
       let uniqueUserIds = [...new Set(userIds)];
 
@@ -852,45 +941,43 @@ class SalaryService {
       let param = {
         data: SalaryData,
         companyId: companyId,
-        timeZone:timeZone
+        timeZone: timeZone,
       };
-        
+
       let reCalcuatedArray = [];
 
-      if(uniqueUserIds && uniqueUserIds.length>0){
-        
-      for (let i = 0; i < uniqueUserIds.length; i++) {    
-        
-        SalaryData.user = uniqueUserIds[i];
+      if (uniqueUserIds && uniqueUserIds.length > 0) {
+        for (let i = 0; i < uniqueUserIds.length; i++) {
+          SalaryData.user = uniqueUserIds[i];
 
-        SalaryData.startDate = startDate;
+          SalaryData.startDate = startDate;
 
-        SalaryData.endDate = endDate;
+          SalaryData.endDate = endDate;
 
-        let response = await this.getCalculatedData(param);        
+          let response = await this.getCalculatedData(param);
 
-        reCalcuatedArray.push(...response);
+          reCalcuatedArray.push(...response);
+        }
       }
-    }
-    let sortParam =""
-    if(sort == "additional_hours"){
-      sortParam = "totalMinutes"
-    }else{
-      sortParam= sort
-    }
+      let sortParam = "";
+      if (sort == "additional_hours") {
+        sortParam = "totalMinutes";
+      } else {
+        sortParam = sort;
+      }
 
-    let data = ArrayList.sort(reCalcuatedArray,sortParam,sortDir)
-    const offset = (page - 1) * pageSize;
-    const paginatedResults = data.slice(offset, offset + pageSize);
+      let data = ArrayList.sort(reCalcuatedArray, sortParam, sortDir);
+      const offset = (page - 1) * pageSize;
+      const paginatedResults = data.slice(offset, offset + pageSize);
       return {
         paginatedResults,
-        totalCount:data.length,
+        totalCount: data.length,
         page,
-        pageSize
-      }
-
+        pageSize,
+      };
     } catch (err) {
-      console.log(err);    }
+      console.log(err);
+    }
   }
 }
 module.exports = SalaryService;

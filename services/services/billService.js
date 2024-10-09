@@ -49,6 +49,8 @@ const { getSettingValueByObject } = require("../SettingService");
 const { ALLOW_DUPLICATE_INVOICE_NUMBER } = require("../../helpers/Setting");
 const ObjectHelper = require("../../helpers/ObjectHelper");
 const ArrayList = require("../../lib/ArrayList");
+const Setting = require("../../helpers/Setting");
+const { paymentService } = require("../PaymentService");
 
 class BillService {
   static async create(req, res, next) {
@@ -350,8 +352,8 @@ class BillService {
 
   // search
   static async search(params, res) {
-    let { page, pageSize, search, sort, sortDir, pagination, purchase_id, account_id, companyId, status, startDate, endDate, account, gstStatus, excludeStatus, bill_manage_others, userId, showTotalAmount, multiStatus } = params;
-
+    let { page, pageSize, search, sort, sortDir, pagination, purchase_id, account_id, companyId, status, startDate, endDate, account, gstStatus, excludeStatus, bill_manage_others, userId, showTotalAmount, timeZone } = params;
+    let date = DateTime.getCustomDateTime(params?.date, timeZone)
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
     if (isNaN(page)) {
@@ -464,6 +466,14 @@ class BillService {
         [Op.and]: {
           [Op.gte]: startDate,
           [Op.lte]: endDate,
+        },
+      };
+    }
+    if(date && Number.isNotNull(params?.date)){
+      where.bill_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }
@@ -681,6 +691,8 @@ class BillService {
         return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
       }
       const id = req.params.id;
+    let roleId = Request.getUserRole(req);
+
       const companyId = Request.GetCompanyId(req);
       const {
         net_amount,
@@ -826,6 +838,29 @@ class BillService {
       });
 
       res.on("finish", async () => {
+
+        if ((DateTime.isValidDate(due_date) && DateTime.isValidDate((billDetail.due_date)) && billDetail.due_date !== DateTime.getSQlFormattedDate(due_date))) {
+          let isEnabledFineAddForDueDateChange = await getSettingValueByObject(
+            Setting.FINE_ADD_FOR_BILL_DUE_DATE_CHANGE,
+            companyId,
+            roleId,
+            ObjectName.ROLE
+          );
+          let numOfDueDateDays = DateTime.getDayCountByDateRange(billDetail?.due_date, DateTime.getSQlFormattedDate(due_date));
+          if (isEnabledFineAddForDueDateChange && isEnabledFineAddForDueDateChange == "true") {
+            let params = {
+              company_id: companyId,
+              type: Setting.BILL_DUE_DATE_CHANGE_FINE_TYPE,
+              user_id: billDetail?.owner_id,
+              due_date,
+              numOfDueDateDays,
+              object_id: billDetail?.id,
+              object_name: ObjectName.BILL
+            }
+            await paymentService.addFineForDueDateChange(params)
+          }
+        }
+
         this.updateAuditLog(req?.body, billDetail, req, id, ownerDetails, details)
       });
       res.json({ message: "Bill Updated", data: data, });

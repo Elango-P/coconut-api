@@ -75,18 +75,28 @@ const productupdate = async (req, res) => {
     
     if (Number.isNotNull(data.igst_percentage)) { updateData.igst_percentage = (data.igst_percentage) }
     if (data.igst_amount) { updateData.igst_amount = Number.GetFloat(data.igst_amount) }
+    
+    if(Number.isNotNull(data.mrp)){
      updateData.mrp = Number.GetFloat(data.mrp) 
 
+    }
     if (data.unit_price) { updateData.unit_price = Number.GetFloat(unit_price); }
 
     if (data.manufactured_date) { updateData.manufactured_date = data.manufactured_date }
 
     if (data.status) { updateData.status = data.status }
 
-    if (data.discount_percentage) { updateData.discount_percentage = Number.GetFloat(data.discount_percentage) }
+    if(Number.isNotNull(data.margin_percentage)){
+      updateData.margin_percentage =data.margin_percentage 
+    }
+    if(Number.isNotNull(data.unit_margin_amount)){
+      updateData.unit_margin_amount =data.unit_margin_amount 
+    }
     
-      updateData.margin_percentage =data.margin_percentage
-      updateData.unit_margin_amount =  data.unit_margin_amount
+    if(Number.isNotNull(data.margin_amount)){
+      updateData.margin_amount =data.margin_amount 
+    }
+    
       updateData.margin_amount =  data.margin_amount
     await PurchaseProduct.update(updateData, {
       where: {

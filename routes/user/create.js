@@ -18,6 +18,7 @@ const AccountTypeService = require("../../services/AccountTypeService");
 const Account = require("../../helpers/Account");
 const Status = require("../../helpers/Status");
 const { UserEmployment, account } = require("../../db").models;
+const { userService } = require("../../services/UserService");
 
 async function create(req, res, next) {
   try {
@@ -28,7 +29,9 @@ async function create(req, res, next) {
     }
 
     const data = req.body;
+
     let userData = {};
+
     let newPassword = data.newPassword;
 
     const companyId = req.user && req.user.company_id;
@@ -39,6 +42,15 @@ async function create(req, res, next) {
 
     const defaultTimeZone = await getSettingValue(USER_DEFAULT_TIME_ZONE, companyId);
 
+    const existingUserDetail = await userService.findOne({
+      where: {
+        mobile_number1: PhoneNumber.Get(data.mobileNumber), company_id: companyId
+      }
+    });
+
+    if (existingUserDetail) {
+      return res.json(400, { message: "User with this mobile number already exists" });
+    }
 
     userData.company_id = companyId;
     userData.name = data.first_name;
@@ -49,7 +61,7 @@ async function create(req, res, next) {
     userData.role = data?.role?.value;
     userData.email = data.email;
     userData.date_of_joining = data?.date_of_joining,
-    userData.mobile_number1 =  data.mobileNumber && PhoneNumber.Get(data.mobileNumber);
+      userData.mobile_number1 = data.mobileNumber && PhoneNumber.Get(data.mobileNumber);
 
     userData["password"] = md5Password(newPassword);
 
@@ -58,11 +70,13 @@ async function create(req, res, next) {
     }
 
     let createData = await UserService.createUser(userData);
+    
     if (createData && createData?.id) {
-      let accountTypeIds = await AccountTypeService.getAccountTypeByCategory(
-        Account.CATEGORY_USER,
-        companyId
-      );
+      let params={
+        category: Account.CATEGORY_USER,
+        companyId: companyId
+      }
+      let accountTypeIds = await AccountTypeService.getAccountTypeByCategory(params);
 
       let accountObj = {
         name: data?.first_name,
@@ -72,11 +86,11 @@ async function create(req, res, next) {
         type: accountTypeIds[0],
         company_id: companyId,
       };
-     
+
       let accountData = await account.create(accountObj);
-      
-      if(accountData && accountData?.id){
-        await UserService.update({account_id:accountData?.id},{where:{id:createData?.id,company_id: companyId}})
+
+      if (accountData && accountData?.id) {
+        await UserService.update({ account_id: accountData?.id }, { where: { id: createData?.id, company_id: companyId } })
       }
     }
     let createUserEmpData = {
@@ -89,7 +103,7 @@ async function create(req, res, next) {
     res.send(200, { message: "User Created" });
     //create a log for erro
     res.on("finish", async () => {
-      await UserService.reindex(createData?.id,companyId)
+      await UserService.reindex(createData?.id, companyId)
       History.create("User Created", req, ObjectName.USER, createData?.id);
     })
 

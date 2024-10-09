@@ -23,6 +23,7 @@ const WhatsappService = require("../../services/WhatsAppService");
 const { getSettingValue } = require("../../services/SettingService");
 const Setting = require("../../helpers/Setting");
 const Attendance = require("../../helpers/Attendance");
+const AttendanceTypeService = require("../../services/AttendanceTypeService");
 
 async function attendanceAttachment(req, res, next) {
   try {
@@ -78,7 +79,10 @@ async function attendanceAttachment(req, res, next) {
           if(channelId && channelId !==""){
             AttendanceService.SendMessge(mediaDetails.id, attendanceDetail.id, companyId, activityType,created_at, updated_at,channelId);
           }
-          if (attendanceDetail && attendanceDetail.type=== Attendance.TYPE_ADDITIONAL_DAY && activityType !== "Check Out") {
+
+          let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: companyId})
+
+          if (attendanceDetail && additionalDayIds?.includes(attendanceDetail?.type) && activityType !== "Check Out") {
             let channelId = await getSettingValue(Setting.ATTENDANCE_ADDITIONAL_DAY_NOTIFICATION_CHANNEL, companyId);
             if(channelId && channelId !==""){
               AttendanceService.SendMessge(mediaDetails.id, attendanceDetail?.id, companyId, attendanceDetail.type, attendanceDetail?.created_at, null, channelId);

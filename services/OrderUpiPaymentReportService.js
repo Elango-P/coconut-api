@@ -8,7 +8,8 @@ const ObjectName = require("../helpers/ObjectName");
 const { getMediaUrlsByMediaId } = require("./MediaService");
 const DateTime = require("../lib/dateTime");
 const { order: orderModel, Location, Shift, User, Media } = require('../db').models;
-const Where = require('../lib/Where')
+const Where = require('../lib/Where');
+const Number = require("../lib/Number");
 
 
 class OrderUpiPaymentReportService {
@@ -16,6 +17,10 @@ class OrderUpiPaymentReportService {
     static async report(req, res, next) {
         try {
         let { page, pageSize, search, sort, sortDir, pagination,  startDate, endDate, location, shift, user } = req.query;
+        let timeZone = Request.getTimeZone(req);
+
+      let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
 
         page = page ? parseInt(page, 10) : 1;
         if (isNaN(page)) {
@@ -87,6 +92,15 @@ class OrderUpiPaymentReportService {
                 [Op.and]: {
                     [Op.gte]: startDate,
                     [Op.lte]: DateTime.toGetISOStringWithDayEndTime(endDate),
+                },
+            };
+        }
+
+        if (date && Number.isNotNull(req?.query?.date)) {
+            where.date = {
+                [Op.and]: {
+                    [Op.gte]: date?.startDate,
+                    [Op.lte]: date?.endDate,
                 },
             };
         }

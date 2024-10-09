@@ -437,6 +437,8 @@ const search = async (req, res, next) => {
     let startTimeValue = DateTime.getGmtHoursAndMinutes(startTime);
     let endTimeValue = DateTime.getGmtHoursAndMinutes(endTime);
 
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone);
+
     let productDetailWhere = new Object();
     let whereClause = '';
 
@@ -506,9 +508,9 @@ const search = async (req, res, next) => {
       orderWhere.company_id = companyId
 
     }
-    
+
     let statusDetail = await statusService.getAllStatusByGroupId(ObjectName.ORDER_PRODUCT, null, companyId, Status.GROUP_CANCELLED);
-     let cancelledStatusIds = statusDetail && statusDetail.length > 0 && statusDetail.map(status => status?.id);
+    let cancelledStatusIds = statusDetail && statusDetail.length > 0 && statusDetail.map(status => status?.id);
     if (excludeCancelledStatus) {
       if (cancelledStatusIds && cancelledStatusIds.length > 0) {
         where.status = {
@@ -563,15 +565,30 @@ const search = async (req, res, next) => {
       where.product_id = productId;
     }
 
+
+    if (date && Numbers.isNotNull(req?.query?.date)) {
+      if (whereClause) {
+        whereClause += ' AND ';
+      }
+      whereClause += ` order_product."order_date" BETWEEN '${DateTime.toGMT(date?.startDate, timeZone)}' AND '${DateTime.toGMT(date?.endDate, timeZone)}' `;
+
+      where.order_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (startDate && !endDate) {
       if (whereClause) {
         whereClause += ' AND ';
       }
-      whereClause += ` order_product."order_date" > '${ DateTime.toGMT(start_date,timeZone)}' `;
+      whereClause += ` order_product."order_date" > '${DateTime.toGMT(start_date, timeZone)}' `;
 
       where.order_date = {
         [Op.and]: {
-          [Op.gte]:  DateTime.toGMT(start_date,timeZone),
+          [Op.gte]: DateTime.toGMT(start_date, timeZone),
         },
       };
 
@@ -597,7 +614,7 @@ const search = async (req, res, next) => {
       if (whereClause) {
         whereClause += ' AND ';
       }
-      whereClause += ` order_product."order_date" < '${DateTime.toGMT(end_date,timeZone)}' `;
+      whereClause += ` order_product."order_date" < '${DateTime.toGMT(end_date, timeZone)}' `;
       if (startTime) {
         whereClause += ` AND (EXTRACT(HOUR FROM "order_product"."createdAt"::time) * 60 + EXTRACT(MINUTE FROM "order_product"."order_date"::time)) > ${parseInt(startTimeValue.split(':')[0]) * 60 + parseInt(startTimeValue.split(':')[1])} `;
         where.createdAt = {
@@ -616,7 +633,7 @@ const search = async (req, res, next) => {
       }
       where.order_date = {
         [Op.and]: {
-          [Op.lte]: DateTime.toGMT(end_date,timeZone),
+          [Op.lte]: DateTime.toGMT(end_date, timeZone),
         },
       };
     }
@@ -625,7 +642,7 @@ const search = async (req, res, next) => {
       if (whereClause) {
         whereClause += ' AND ';
       }
-      whereClause += ` order_product."order_date" BETWEEN '${DateTime.toGMT(start_date,timeZone)}' AND '${DateTime.toGMT(end_date,timeZone)}' `;
+      whereClause += ` order_product."order_date" BETWEEN '${DateTime.toGMT(start_date, timeZone)}' AND '${DateTime.toGMT(end_date, timeZone)}' `;
       if (startTime && endTime) {
         whereClause += `
           AND (
@@ -657,8 +674,8 @@ const search = async (req, res, next) => {
 
       where.order_date = {
         [Op.and]: {
-          [Op.gte]: DateTime.toGMT(start_date,timeZone),
-          [Op.lte]: DateTime.toGMT(end_date,timeZone),
+          [Op.gte]: DateTime.toGMT(start_date, timeZone),
+          [Op.lte]: DateTime.toGMT(end_date, timeZone),
         },
       };
     }
@@ -698,6 +715,7 @@ const search = async (req, res, next) => {
         },
       };
     }
+
 
     // Search term
     const searchTerm = search ? search.trim() : null;
@@ -772,7 +790,7 @@ const search = async (req, res, next) => {
     const query = {
       distinct: true,
       attributes: {},
-      order:orderArray,
+      order: orderArray,
       include: [
         {
           required: true,
@@ -809,64 +827,64 @@ const search = async (req, res, next) => {
       }
     }
 
-    let totalAmount=0
-    if(showTotal || showTotalAmount){
-    let param ={
-      company_id: companyId,
-      product_id: productId,
-      searchTerm: searchTerm,
-      location: Numbers.isNotNull(location) ?  location: null,
-      status: (cancelledStatusIds && cancelledStatusIds.length > 0) ? cancelledStatusIds:[],
-      startDate: Numbers.isNotNull(startDate) ? DateTime.toGMT(start_date,timeZone):null,
-      endDate: Numbers.isNotNull(endDate) ? DateTime.toGMT(end_date,timeZone):null,
-      orderId: Numbers.isNotNull(orderId) ? orderId : null
-    }
+    let totalAmount = 0
+    if (showTotal || showTotalAmount) {
+      let param = {
+        company_id: companyId,
+        product_id: productId,
+        searchTerm: searchTerm,
+        location: Numbers.isNotNull(location) ? location : null,
+        status: (cancelledStatusIds && cancelledStatusIds.length > 0) ? cancelledStatusIds : [],
+        startDate: Numbers.isNotNull(startDate) ? DateTime.toGMT(start_date, timeZone) : null,
+        endDate: Numbers.isNotNull(endDate) ? DateTime.toGMT(end_date, timeZone) : null,
+        orderId: Numbers.isNotNull(orderId) ? orderId : null
+      }
 
-     totalAmount = await getTotalAmountByProductId(param);
-  }
+      totalAmount = await getTotalAmountByProductId(param);
+    }
     // Get order product and count
     const orderProducts = await orderProduct.findAndCount(query);
 
-    let totalQty=0
-    if(showTotal){
-    const Totalquery = {
-      distinct: true,
-      attributes: {},
-      order:orderArray,
-      include: [
-        {
-          required: true,
-          model: productIndex,
-          as: 'productIndex',
-          where: productDetailWhere,
-        },
-        {
-          required: true,
-          model: order,
-          as: 'orderDetail',
-          where: orderWhere,
-        },
-        {
-          required: false,
-          model: Location,
-          as: 'locationDetails',
-        },
-        {
-          required: false,
-          model: statusModel,
-          as: 'statusDetail',
-        },
-      ],
-      where,
-    };
-    const orderProductDetail = await orderProduct.find(Totalquery);
+    let totalQty = 0
+    if (showTotal) {
+      const Totalquery = {
+        distinct: true,
+        attributes: {},
+        order: orderArray,
+        include: [
+          {
+            required: true,
+            model: productIndex,
+            as: 'productIndex',
+            where: productDetailWhere,
+          },
+          {
+            required: true,
+            model: order,
+            as: 'orderDetail',
+            where: orderWhere,
+          },
+          {
+            required: false,
+            model: Location,
+            as: 'locationDetails',
+          },
+          {
+            required: false,
+            model: statusModel,
+            as: 'statusDetail',
+          },
+        ],
+        where,
+      };
+      const orderProductDetail = await orderProduct.find(Totalquery);
 
-    totalQty = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.quantity), 0);
-    totalAmount = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.price), 0);
-    totalCostPrice = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.cost_price), 0);
-    totalProfitAmount = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.profit_amount), 0);
+      totalQty = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.quantity), 0);
+      totalAmount = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.price), 0);
+      totalCostPrice = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.cost_price), 0);
+      totalProfitAmount = orderProductDetail.reduce((sum, item) => sum + Numbers.Get(item.profit_amount), 0);
 
-  }
+    }
     // Return order product is null
     if (orderProducts.count === 0) {
       return res.json(200, {

@@ -54,6 +54,26 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: true,
     },
+    show_addresses: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    show_agreement: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    show_contact: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    show_custom_field: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true, 
+    },
+    show_settings: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
     createdAt: {
       allowNull: false,
       type: DataTypes.DATE,

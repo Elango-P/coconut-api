@@ -9,7 +9,8 @@ const {
     storeProduct,
     status: statusModel,
     Location,
-    User
+    User,
+    Shift
 } = require("../db").models;
 
 const Permission = require("../helpers/Permission");
@@ -152,13 +153,13 @@ const createAuditLog = async (oldData, updatedData, req, id) => {
 
     if (updatedData?.due_date && updatedData?.due_date !== oldData.due_date) {
         if (oldData?.due_date !== updatedData?.due_date) {
-          auditLogMessage.push(`Due Date Changed To ${updatedData?.due_date}\n`);
+          auditLogMessage.push(`Due Date Changed To ${DateTime.shortMonthDate(updatedData?.due_date)}\n`);
         }
       }
 
     if (updatedData?.date && updatedData?.date !== oldData.date) {
         if (oldData?.date !== updatedData?.date) {
-          auditLogMessage.push(`Date Changed To ${updatedData?.date}\n`);
+          auditLogMessage.push(`Date Changed To ${DateTime.shortMonthDate(updatedData?.date)}\n`);
         }
     }
 
@@ -328,8 +329,12 @@ const search = async (req, res) => {
             endDate,
             owner,
             user,
-            status
+            status,
+            shift_id,
+            shift
         } = params;
+
+        let timeZone = Request.getTimeZone(req);
 
         const stockEntryManageOthersPermission = await Permission.Has(Permission.STOCK_ENTRY_MANAGE_OTHERS, req);
         // get company Id from request
@@ -355,7 +360,8 @@ const search = async (req, res) => {
             location: "location",
             createdAt: "createdAt",
             updatedAt: "updatedAt",
-            owner : "owner"
+            owner : "owner",
+            shift_id: "shift_id"
         };
         
         const sortParam = sort  ? sort : "createdAt";
@@ -398,9 +404,23 @@ const search = async (req, res) => {
             where.owner_id = owner;
         }
 
+        if (shift) {
+            where.shift_id = shift;
+        }
 
         if (status) {
             where.status = status;
+        }
+
+        let date = DateTime.getCustomDateTime(req?.query?.date, timeZone)
+
+        if (date && Number.isNotNull(req?.query?.date)) {
+          where.date = {
+            [Op.and]: {
+              [Op.gte]: date?.startDate,
+              [Op.lte]: date?.endDate,
+            },
+          };
         }
 
         if (startDate && !endDate) {
@@ -490,6 +510,11 @@ const search = async (req, res) => {
                 model: statusModel,
                 as: 'statusDetail'
             },
+            {
+                required: true,
+                model: Shift,
+                as: "shiftDetail",
+            },
         ];
 
         const dateTime = new DateTime();
@@ -514,7 +539,8 @@ const search = async (req, res) => {
                     stock_entry_number,
                     user,
                     statusDetail,
-                    due_date
+                    due_date,
+                    shiftDetail
                 } = stockEntryListData[i];
 
                 // get product count
@@ -532,7 +558,9 @@ const search = async (req, res) => {
                     owner_last_name:user?.last_name,
                     media_url : user ?.media_url,
                     company_id: companyId,
-                    due_date: due_date
+                    due_date: due_date,
+                    shift: shiftDetail?.name,
+                    shiftId: shiftDetail?.id,
                 };
 
                 // Formate Object Property

@@ -24,6 +24,8 @@ class OrderProductCancelledReportService {
     params;
 
     let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
 
     let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
     let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
@@ -141,6 +143,13 @@ class OrderProductCancelledReportService {
         whereClause += ' AND ';
       }
       whereClause += ` order_product."order_date" BETWEEN '${DateTime.toGMT(start_date,timeZone)}' AND '${DateTime.toGMT(end_date,timeZone)}' `;
+    }
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      if (whereClause) {
+        whereClause += ' AND ';
+      }
+      whereClause += ` order_product."order_date" BETWEEN '${date?.startDate}' AND '${date?.endDate}' `;
     }
 
     if (account && productIds && productIds.length > 0) {

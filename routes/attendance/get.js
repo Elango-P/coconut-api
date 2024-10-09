@@ -4,7 +4,7 @@
 const { BAD_REQUEST, OK } = require("../../helpers/Response");
 
  // Services
- const { Attendance } = require("../../db").models;
+ const { Attendance, User } = require("../../db").models;
  const Request = require("../../lib/request");
 
  /**
@@ -20,8 +20,17 @@ const { BAD_REQUEST, OK } = require("../../helpers/Response");
 
     const attendanceDetails = await Attendance.findOne({
         where: { id:id ,company_id:companyId },
+        include : [
+            {
+                required: false,
+                model: User,
+                as: "user",
+                attributes: ["name","media_url","last_name"]
+
+            },
+        ],
     });
- 
+     
     if (!attendanceDetails) {
         throw { message: "attendance not found", attendanceDetails };
     }

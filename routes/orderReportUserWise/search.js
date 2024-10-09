@@ -14,6 +14,7 @@ const OrderProductConstants = require('../../helpers/OrderProduct');
 const { USER_DEFAULT_TIME_ZONE } = require("../../helpers/Setting");
 const { getSettingValue } = require("../../services/SettingService");
 const Request = require("../../lib/request");
+const Numbers = require("../../lib/Number");
 
 async function search(req, res, next) {
 
@@ -40,6 +41,7 @@ async function search(req, res, next) {
     const userWhere = {};
     let { startDate, endDate, user, type, shift, paymentType } = req.query;
     let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
     let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
     let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
     let total = 0;
@@ -67,6 +69,16 @@ async function search(req, res, next) {
         },
       };
     }
+
+    if (date && Numbers.isNotNull(req.query?.date)) {
+      orderWhere.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (user) {
       orderWhere.owner = user;
     }

@@ -83,6 +83,8 @@ class rewardReportService {
       const userData = userList.rows;
       const data = [];
       let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
 
 
       for (const user of userData) {
@@ -92,8 +94,8 @@ class rewardReportService {
         const param = {
           companyId: companyId,
           userId: id,
-          startDate: startDate ? DateTime.toGMT(start_date,timeZone) : null,
-          endDate: endDate ? DateTime.toGMT(end_date,timeZone) : null,
+          startDate: (req?.query?.date && date) ? date?.startDate : startDate ? DateTime.toGMT(start_date,timeZone) : null,
+          endDate: (req?.query?.date && date) ? date?.endDate:  endDate ? DateTime.toGMT(end_date,timeZone) : null,
         };
         const rewardCount = await OrderProductService.getRewardCount(param);
         data.push({

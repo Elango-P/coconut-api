@@ -10,6 +10,8 @@ const ArrayList = require("../lib/ArrayList");
 const { fineService } = require("./FineBonusService");
 const Status = require("../helpers/Status");
 const ObjectHelper = require("../helpers/ObjectHelper");
+const DateTime = require("../lib/dateTime");
+const Request = require("../lib/request");
 
 // Define the search function for fines
 const search = async (params, companyId, req) => {
@@ -29,6 +31,8 @@ const search = async (params, companyId, req) => {
       endDate,
       showTotal
     } = params;
+
+    let timeZone = Request.getTimeZone(req)
 
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
@@ -143,6 +147,17 @@ const search = async (params, companyId, req) => {
           ],
         },
       ];
+    }
+
+    let date = DateTime.getCustomDateTime(req.query.date, timeZone)
+
+    if (date && Number.isNotNull(req.query.date)) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
     }
 
     if (startDate && !endDate) {

@@ -60,6 +60,7 @@ class LocationAllocationService {
   static async search(req, res, next) {
     try {
       let { page, pageSize, search, sort, sortDir, pagination, endDate,startDate  } = req.query;
+      let timeZone = Request.getTimeZone(req)
 
       // Validate if page is not a number
       page = page ? parseInt(page, 10) : 1;
@@ -96,6 +97,18 @@ class LocationAllocationService {
 
       let where = {};
       where.company_id = companyId;
+
+
+      let date = DateTime.getCustomDateTime(req?.query?.date,timeZone)
+
+      if (date && Number.isNotNull(req?.query?.date)) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+      }
 
       if (startDate && !endDate) {
         where.date = {

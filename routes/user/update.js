@@ -26,11 +26,11 @@ function update(req, res, next) {
 		}
 
 		if (data.dateOfBirth) {
-			data.dateOfBirth = utils.customDate(data.dateOfBirth, "DD-MM-YYYY", "YYYY-MM-DD");
+			data.dateOfBirth = utils.date(data.dateOfBirth, "DD-MM-YYYY", "YYYY-MM-DD");
 		}
 
 		if (data.dateOfJoining) {
-			data.dateOfJoining = utils.customDate(data.dateOfJoining, "DD-MM-YYYY", "YYYY-MM-DD");
+			data.dateOfJoining = utils.date(data.dateOfJoining, "DD-MM-YYYY", "YYYY-MM-DD");
 		}
 
 		const updateData = {

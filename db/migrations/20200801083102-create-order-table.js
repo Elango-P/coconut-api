@@ -107,6 +107,10 @@ module.exports = {
             allowNull: true,
             type: Sequelize.INTEGER,
           },
+          reason: {
+            type: Sequelize.STRING,
+            allowNull: true,
+          },
         });
       };
     } catch (err) {

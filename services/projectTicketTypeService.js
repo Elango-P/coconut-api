@@ -4,7 +4,7 @@ const History = require("./HistoryService");
 const Date = require("../lib/dateTime");
 const { BAD_REQUEST, UPDATE_SUCCESS , OK } = require("../helpers/Response");
 const Projects = require("../helpers/Project.js")
-const statusService = require("./StatusService");
+const StatusService = require("../services/StatusService");
 
 const Number = require("../lib/Number");
 // Models
@@ -219,6 +219,9 @@ const update = async (req, res, next) => {
     if(Object.keys(data).includes("checkBoxValue")){
       projectDetails.fields =  checkBoxValue && checkBoxValue.join(",")
     }
+    if(Object.keys(data).includes("fine_type")){
+      projectDetails.fine_type = data?.fine_type ? data?.fine_type?.value : null
+    }
 
 
     const save = await ProjectTicketType.update(projectDetails, {
@@ -361,7 +364,8 @@ const Get = async(req, res, next) => {
       ganaf:"",
       status: projectTicketTypeDetail.status.toString()?projectTicketTypeDetail.status.toString():"",
       sub_task_ticket_types: projectTicketTypeDetail?.sub_task_ticket_types,
-      field: projectTicketTypeDetail && projectTicketTypeDetail?.fields ? projectTicketTypeDetail?.fields :""
+      field: projectTicketTypeDetail && projectTicketTypeDetail?.fields ? projectTicketTypeDetail?.fields :"",
+      fine_type: projectTicketTypeDetail && projectTicketTypeDetail?.fine_type ? projectTicketTypeDetail?.fine_type :""
         };
 
     res.json(OK, { data: data })
@@ -529,7 +533,8 @@ const query = {
         show_sub_tasks: projectTicketTypeDetail?.show_sub_tasks,
         show_jira_assignee: projectTicketTypeDetail?.show_jira_assignee,
          default_story_point:projectTicketTypeDetail?.default_story_point?projectTicketTypeDetail?.default_story_point:"",
-         sub_task_ticket_types:projectTicketTypeDetail?.sub_task_ticket_types?projectTicketTypeDetail?.sub_task_ticket_types:""
+         sub_task_ticket_types:projectTicketTypeDetail?.sub_task_ticket_types?projectTicketTypeDetail?.sub_task_ticket_types:"",
+         fine_type: projectTicketTypeDetail?.fine_type ? projectTicketTypeDetail?.fine_type : "",
       });
     });
     res.json(OK, {
@@ -620,59 +625,77 @@ const getById = async (ticketId, companyId) => {
   console.log(err);
 }
 }
+
 const list = async (req, res, next) => {
   try {
     try {
       let { projectId } = req.query;
+
       let companyId = Request.GetCompanyId(req);
 
       if (!companyId) {
-          return res.send(404, { message: 'Company Not Found' });
+        return res.send(404, { message: 'Company Not Found' });
       }
 
       let where = {};
+
       where.company_id = companyId;
 
-      let statusValue = !isKeyAvailable(req.query,"status") ? Status.ACTIVE : isKeyAvailable(req.query,"status") && Number.isNotNull(req.query?.status) ? req.query?.status : null;
-      let defaultValue = isKeyAvailable(req.query,"defaultValue") && Number.isNotNull(req.query?.defaultValue) ? req.query?.defaultValue :null
-      where[Op.or]= [
+      let statusValue = !isKeyAvailable(req.query, "status") ? Status.ACTIVE : isKeyAvailable(req.query, "status") && Number.isNotNull(req.query?.status) ? req.query?.status : null;
+
+      let defaultValue = isKeyAvailable(req.query, "defaultValue") && Number.isNotNull(req.query?.defaultValue) ? req.query?.defaultValue : null
+
+      where[Op.or] = [
         { status: { [Op.or]: [statusValue, null] } },
         { id: { [Op.or]: [defaultValue, null] } }
       ]
-    
 
-      if(Number.isNotNull(projectId)){
+      if (Number.isNotNull(projectId)) {
         where.project_id = projectId
       }
 
       const query = {
-        include:[{model:Project, as:"projectDetail", required:false}],
-          order: [['name', 'ASC']],
-          where,
+        include: [{ model: Project, as: "projectDetail", required: false }],
+        order: [['name', 'ASC']],
+        where,
       };
 
       const ticketTypeDetail = await ProjectTicketType.findAll(query);
-      let list = [];
-      for (let i in ticketTypeDetail) {
-          let { id, name, project_id, default_story_point, sort,projectDetail } = ticketTypeDetail[i];
 
-          let data = {
-              id: id,
-              name: name,
-              sort: sort,
-              project_id: project_id,
-              default_story_point: default_story_point,
-              projectName: projectDetail?.name
-          };
-          list.push(data);
+      let list = [];
+
+      for (let i in ticketTypeDetail) {
+        let { id, name, project_id, default_story_point, sort, projectDetail, fields } = ticketTypeDetail[i];
+
+        const status = await StatusService.getFirstStatus(
+          ObjectName.TICKET,
+          companyId,
+          id
+        );
+
+        let getStatusDetail = await StatusService.getData(status, companyId);
+
+        let data = {
+          id: id,
+          name: name,
+          sort: sort,
+          project_id: project_id,
+          default_story_point: default_story_point,
+          projectName: projectDetail?.name,
+          default_assignee: getStatusDetail?.default_owner,
+          default_reviewer: getStatusDetail?.default_reviewer,
+          fields: fields,
+        };
+
+        list.push(data);
       }
       res.json(OK, {
-          data: list,
+        data: list,
       });
-  } catch (err) {
+    } catch (err) {
       console.log(err);
       res.json(BAD_REQUEST, { message: err.message });
-  }
+    }
   } catch (err) {
     console.log(err);
     res.json(BAD_REQUEST, { message: err.message });
@@ -681,12 +704,12 @@ const list = async (req, res, next) => {
 
 module.exports = {
   create,
-  update, 
-  del ,
+  update,
+  del,
   Get,
   search,
-updateByStatus,
-getById,
-list
+  updateByStatus,
+  getById,
+  list
 };
 

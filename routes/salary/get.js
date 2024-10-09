@@ -77,6 +77,7 @@ async function get(req, res, next) {
       other_allowance,
       statusDetail,
       user,
+      attendance_count
     } = salaryData.get();
 
     let data = {
@@ -125,8 +126,10 @@ async function get(req, res, next) {
       first_name: user?.name,
       last_name: user?.last_name,
       monthValue: Month.get(month),
+      attendanceCount:  String.isNotNull(attendance_count) ? JSON.parse(attendance_count):[]
     };
-
+   
+   
     res.json(200, data);
   } catch (err) {
     next(err);

@@ -7,7 +7,7 @@ const Request = require('../lib/request');
 const History = require('../services/HistoryService');
 const {
   Payment: PaymentModel,
-  User,
+  Tag,
   status: statusModal,
   PaymentAccount: PaymentAccountModal,
   account: AccountModal,
@@ -31,6 +31,9 @@ const db = require('../db');
 const Permission = require('../helpers/Permission');
 const Response = require('../helpers/Response');
 const ObjectHelper = require("../helpers/ObjectHelper");
+const { fineService } = require("./FineBonusService");
+const Setting = require("../helpers/Setting");
+const { getSettingValueByObject, getSettingValue } = require("./SettingService");
 
 class paymentService {
   // Create a new paymentService
@@ -258,6 +261,7 @@ class paymentService {
     } = req.body;
 
     const { id } = req.params;
+    let roleId = Request.getUserRole(req);
     try {
       const hasPermission = await Permission.Has(Permission.PAYMENT_EDIT, req);
       if (!hasPermission) {
@@ -354,6 +358,7 @@ class paymentService {
         where: { company_id: companyId, id: id },
       });
 
+
       res.on('finish', async () => {
         this.createAuditLog(paymentsDetail, updateData, req, id);
         if (paymentsDetail.status != status) {
@@ -368,6 +373,31 @@ class paymentService {
             req.user.id
           );
         }
+
+
+        if(Number.isNotNull(due_date) && paymentsDetail?.due_date !== DateTime.getSQlFormattedDate(due_date)){
+          let isEnabledFineAddForDueDateChange = await getSettingValueByObject(
+            Setting.FINE_ADD_FOR_PAYMENT_DUE_DATE_CHANGE,
+            companyId,
+            roleId,
+            ObjectName.ROLE
+          );
+          let numOfDueDateDays = DateTime.getDayCountByDateRange(paymentsDetail?.due_date, DateTime.getSQlFormattedDate(due_date));
+          if(isEnabledFineAddForDueDateChange && isEnabledFineAddForDueDateChange == "true"){
+            let params={
+              company_id: companyId,
+               type: Setting.PAYMENT_DUE_DATE_CHANGE_FINE_TYPE ,
+                user_id: paymentsDetail?.owner_id,
+                 due_date, 
+                 numOfDueDateDays,
+                 object_id: paymentsDetail?.id,
+                 object_name: ObjectName.PAYMENT
+            }
+            await this.addFineForDueDateChange(params)
+          }
+        }
+
+
       });
 
       return res.json(UPDATE_SUCCESS, {
@@ -397,8 +427,10 @@ class paymentService {
       user,
       payment_id,
       excludeStatus,
-      showTotal
+      showTotal,
+      accountType
     } = req.query;
+
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
     if (isNaN(page)) {
@@ -412,6 +444,8 @@ class paymentService {
     }
 
     const companyId = req.user && req.user.company_id;
+    let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
 
     if (!companyId) {
       return res.json(400, 'Company Not Found');
@@ -450,20 +484,26 @@ class paymentService {
     const where = {};
     const accountWhere = {};
     const paymentAccountWhere = {};
-    const userWhere = {};
     where.company_id = companyId;
     // Search by name
 
     // Search by status
     const status = data.status;
+
     if (status) {
       where.status = status;
     }
+
+    if (accountType) {
+      accountWhere.type = accountType;
+    }
+
     if (excludeStatus) {
       where.status = {
         [Op.notIn]: [excludeStatus]
       };
     }
+
     let userId = req && req.user && req.user.id;
 
     if (!payment_manage_others) {
@@ -485,10 +525,13 @@ class paymentService {
     if (account) {
       where.account_id = account;
     }
+
     if (paymentAccount) {
       where.payment_account_id = paymentAccount;
     }
+
     let billId;
+
     if (Number.isNotNull(purchaseId)) {
       let purchaseData = await Purchase.findOne({
         where: { id: purchaseId },
@@ -508,7 +551,7 @@ class paymentService {
     if (sort && sort !== 'payment_account_name' && sort !== 'name' && sort !== "status") {
       order.push([sort, sortDir]);
     }
-    
+
     if (sortParam === 'payment_account_name') {
       order.push([{ model: PaymentAccountModal, as: 'paymentAccountDetail' }, 'payment_account_name', sortDir]);
     }
@@ -573,6 +616,16 @@ class paymentService {
         },
       };
     }
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     const query = {
       order,
       include: [
@@ -600,19 +653,21 @@ class paymentService {
     if (validator.isEmpty(pagination)) {
       pagination = true;
     }
+
     if (Boolean.isTrue(pagination)) {
       if (pageSize > 0) {
         query.limit = pageSize;
         query.offset = (page - 1) * pageSize;
       }
     }
+
     try {
-      let params={
+      let params = {
         startDate,
         endDate,
         companyId,
         payment_id,
-        bill_id : bill_id ? bill_id : billId,
+        bill_id: bill_id ? bill_id : billId,
         payment_manage_others,
         userId,
         user,
@@ -620,11 +675,11 @@ class paymentService {
         paymentAccount,
         searchTerm,
         excludeStatus,
-        status
+        status,
+        accountType
       }
 
-      let totalAmount = await this.getTotalAmount(params)
-
+      let totalAmount = await this.getTotalAmount(params);
 
       const details = await PaymentModel.findAndCountAll(query);
 
@@ -632,8 +687,8 @@ class paymentService {
         return res.json({ message: 'Payment not found' });
       }
 
-
       const data = [];
+
       details.rows.forEach((paymentsValue) => {
         const {
           id,
@@ -655,32 +710,30 @@ class paymentService {
           id,
           payment_number: id,
           date: date,
-          statusId:statusDetail?.id,
+          statusId: statusDetail?.id,
           status: statusDetail?.name,
           statusColor: statusDetail?.color_code,
           account: accountDetail?.name,
           accountId: accountDetail?.id,
-          paymentAccount: paymentAccountDetail?.payment_account_name?paymentAccountDetail?.payment_account_name:"",
-          paymentAccountId: paymentAccountDetail?.id?paymentAccountDetail?.id:"",
+          paymentAccount: paymentAccountDetail?.payment_account_name ? paymentAccountDetail?.payment_account_name : "",
+          paymentAccountId: paymentAccountDetail?.id ? paymentAccountDetail?.id : "",
           amount,
-          statusId : statusDetail?.id,
-          notes : notes,
-          bill_id:bill_id,
-          due_date:due_date,
-          invoice_number:invoice_number,
+          statusId: statusDetail?.id,
+          notes: notes,
+          bill_id: bill_id,
+          due_date: due_date,
+          invoice_number: invoice_number,
           createdAt: DateTime.defaultDateFormat(createdAt),
           updatedAt: DateTime.defaultDateFormat(updatedAt),
-          owner_id:owner_id
+          owner_id: owner_id
         });
       });
 
-      if(showTotal && totalAmount){
-
+      if (showTotal && totalAmount) {
         let lastReCord = ObjectHelper.createEmptyRecord(data[0])
         lastReCord.amount = totalAmount;
         data.push(lastReCord);
       }
-
 
       res.json(OK, {
         totalCount: details.count,
@@ -691,7 +744,7 @@ class paymentService {
         sort,
         sortDir,
         status: status ? status : '',
-        totalAmount:totalAmount,
+        totalAmount: totalAmount,
       });
     } catch (err) {
       console.log(err);
@@ -711,6 +764,7 @@ class paymentService {
     LEFT JOIN "account" ON "payment"."account_id" = "account"."id"
     WHERE "payment"."company_id" = ${params?.companyId}
       AND "payment"."deletedAt" IS NULL
+      AND "account"."deletedAt" IS NULL
       ${params?.payment_id ? `AND "payment"."id" = ${params?.payment_id}` : ""}
       ${params?.bill_id && Number.isNotNull(params?.bill_id) ? `AND "payment"."bill_id" = ${params?.bill_id}` : ""}
       ${!params?.payment_manage_others ? `AND "payment"."owner_id" = ${params?.userId}` : ""}
@@ -722,68 +776,111 @@ class paymentService {
       ${rawDateCondition}
       ${params?.excludeStatus && Number.isNotNull(params?.excludeStatus) ? `AND "payment"."status" NOT IN ('${[params?.excludeStatus]}')` : ""}
       ${params?.status ? `AND "payment"."status" = ${params?.status}` : ""}
+      ${params?.accountType ? `AND "account"."type" = '${params?.accountType}'` : ""}
       ;`;
-  
-    
-      const totalAmountResult = await db.connection.query(rawQuery, {
-        type: QueryTypes.SELECT,
-      });
-    
-      const totalAmount1 = totalAmountResult && totalAmountResult[0].totalAmount;
-      return totalAmount1
+
+    const totalAmountResult = await db.connection.query(rawQuery, {
+      type: QueryTypes.SELECT,
+    });
+
+    const totalAmount1 = totalAmountResult && totalAmountResult[0].totalAmount;
+    return totalAmount1
   }
 
-    static async createAuditLog(olddata, updatedData,req,id) {
+  static async createAuditLog(olddata, updatedData,req,id) {
 
-      let companyId = Request.GetCompanyId(req);
+    let companyId = Request.GetCompanyId(req);
 
-        let auditLogMessage = new Array();
+    let auditLogMessage = new Array();
 
-        if (updatedData?.date && DateTime.DateOnly(updatedData?.date) !== olddata?.date) {
-          auditLogMessage.push(`Date Changed to  ${DateTime.shortMonthDate(updatedData.date)}\n`);
-        }
-    
-        if(updatedData?.due_date && DateTime.DateOnly(updatedData?.due_date) !== olddata?.due_date){
-          auditLogMessage.push(`Due Date Changed to ${DateTime.shortMonthDate(updatedData?.due_date)}\n`);
-        }
-        
-        if (updatedData?.amount  && updatedData?.amount !==olddata?.amount) {
-          auditLogMessage.push(`Amount Changed to ${Currency.IndianFormat(updatedData?.amount)}\n`);
-        }
-  
-        if (updatedData?.status && updatedData?.status !==olddata?.status) {
-          let newStatus = await StatusService.getData(updatedData?.status,companyId)
-          auditLogMessage.push(`Status Changed to ${newStatus?.name}\n`);
-        }
-  
-        if(updatedData?.notes && updatedData?.notes !== olddata?.notes){
-          auditLogMessage.push(`Notes Changed  ${updatedData?.notes}\n`);
-        }
-
-        if(updatedData?.invoice_number && updatedData?.invoice_number !== olddata?.invoice_number){
-          auditLogMessage.push(`Invoice Number Changed to ${updatedData?.invoice_number}\n`);
-        }
-  
-        if (updatedData?.owner_id && olddata.owner_id != updatedData?.owner_id) {
-          let newValue = await getUserDetailById(updatedData?.owner_id,companyId)
-          auditLogMessage.push(`Owner Changed to ${concatName(newValue?.name,newValue?.last_name)}\n`);
-        }
-
-        if (updatedData?.account_id && updatedData?.account_id  != olddata.account_id) {
-          auditLogMessage.push(`Account Changed  ${await accountService.getAccountName(updatedData?.account_id,companyId)}\n`);
-        }
-  
-        if (updatedData?.payment_account_id && updatedData?.payment_account_id  != olddata.payment_account_id) {
-          auditLogMessage.push(`Payment Account Changed  ${await getPaymentAccountName(updatedData?.payment_account_id,companyId)}\n`);
-        }
-
-          if (auditLogMessage && auditLogMessage.length > 0) {
-            let message = auditLogMessage.join();
-            History.create(message,req,ObjectName.PAYMENT,id);
-          } else {
-            History.create("Payment Updated", req, ObjectName.PAYMENT, id);
-          }
+    if (updatedData?.date && DateTime.DateOnly(updatedData?.date) !== olddata?.date) {
+      auditLogMessage.push(`Date Changed to  ${DateTime.shortMonthDate(updatedData.date)}\n`);
     }
+
+    if (updatedData?.due_date && DateTime.DateOnly(updatedData?.due_date) !== olddata?.due_date) {
+      auditLogMessage.push(`Due Date Changed to ${DateTime.shortMonthDate(updatedData?.due_date)}\n`);
+    }
+
+    if (updatedData?.amount && updatedData?.amount !== olddata?.amount) {
+      auditLogMessage.push(`Amount Changed to ${Currency.IndianFormat(updatedData?.amount)}\n`);
+    }
+
+    if (updatedData?.status && updatedData?.status !== olddata?.status) {
+      let newStatus = await StatusService.getData(updatedData?.status, companyId)
+      auditLogMessage.push(`Status Changed to ${newStatus?.name}\n`);
+    }
+
+    if (updatedData?.notes && updatedData?.notes !== olddata?.notes) {
+      auditLogMessage.push(`Notes Changed  ${updatedData?.notes}\n`);
+    }
+
+    if (updatedData?.invoice_number && updatedData?.invoice_number !== olddata?.invoice_number) {
+      auditLogMessage.push(`Invoice Number Changed to ${updatedData?.invoice_number}\n`);
+    }
+
+    if (updatedData?.owner_id && olddata.owner_id != updatedData?.owner_id) {
+      let newValue = await getUserDetailById(updatedData?.owner_id, companyId)
+      auditLogMessage.push(`Owner Changed to ${concatName(newValue?.name, newValue?.last_name)}\n`);
+    }
+
+    if (updatedData?.account_id && updatedData?.account_id != olddata.account_id) {
+      auditLogMessage.push(`Account Changed  ${await accountService.getAccountName(updatedData?.account_id, companyId)}\n`);
+    }
+
+    if (updatedData?.payment_account_id && updatedData?.payment_account_id != olddata.payment_account_id) {
+      auditLogMessage.push(`Payment Account Changed  ${await getPaymentAccountName(updatedData?.payment_account_id, companyId)}\n`);
+    }
+
+    if (auditLogMessage && auditLogMessage.length > 0) {
+      let message = auditLogMessage.join();
+      History.create(message, req, ObjectName.PAYMENT, id);
+    } else {
+      History.create("Payment Updated", req, ObjectName.PAYMENT, id);
+    }
+  }
+
+  static async addFineForDueDateChange(params) {
+    try {
+  
+    let { 
+      company_id,
+      type,
+      user_id,
+      due_date,
+      numOfDueDateDays,
+      object_id,
+      object_name
+     } = params;
+
+    let fineType = await getSettingValue(type, company_id);
+    if (Number.isNotNull(fineType)) {
+      const tagDetail = await Tag.findOne({
+        where: { id: fineType, company_id: company_id },
+      });
+
+      if (Number.isNotNull(tagDetail)) {
+        let fineAmount = Number.GetFloat(tagDetail?.default_amount) * numOfDueDateDays;
+
+        let createData = {
+          user: user_id,
+          type: fineType,
+          amount: fineAmount,
+          company_id: company_id,
+          notes: ` Due Date Changed to ${DateTime.shortDateAndTime(due_date)} \n Due Days Days : ${numOfDueDateDays} \n Fine Amount: ${Currency.IndianFormat(tagDetail?.default_amount)}`,
+          object_id,
+          object_name
+        };
+        await fineService.create({ body: createData, user: { id: user_id, company_id: company_id } }, null, null);
+      }
+    }
+
+        
+  } catch (error) {
+    console.log(error);
+  }
+
+
+  }
 }
 
 module.exports = {
