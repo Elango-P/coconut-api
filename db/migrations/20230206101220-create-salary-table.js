@@ -165,7 +165,7 @@ exports.up = async function up(queryInterface, Sequelize) {
 					type: Sequelize.DECIMAL,
 					allowNull: true,
 				},
-				attendance_count: {
+				attendance: {
 					type: Sequelize.TEXT,
 					allowNull: true,
 				},
