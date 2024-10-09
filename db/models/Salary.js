@@ -158,7 +158,7 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.DECIMAL,
 			allowNull: true,
 		},
-		attendance_count: {
+		attendance: {
 			type: DataTypes.TEXT,
 			allowNull: true,
 		},
