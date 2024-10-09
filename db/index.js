@@ -3,7 +3,7 @@ const config = require("../lib/config").database;
 
 const db = {};
 
-db.connection = new Sequelize(config.databaseUrl, {
+db.connection = new Sequelize(`${config.databaseUrl}?sslmode=disable`, {
 	dialect: 'postgres',
 	dialectOptions: {
 		ssl: {
