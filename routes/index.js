@@ -189,6 +189,8 @@ const orderType = require("./orderType");
 const rating = require("./rating");
 const OrderUpiPaymentReport = require("./OrderUpiPaymentReport");
 const locationRack = require("./locationRack");
+const googleConnect = require("./googleConnect");
+const ratingType = require("./ratingType");
 
 function routes(server) {
   user(server);
@@ -307,7 +309,7 @@ function routes(server) {
   projectTicketType(server);
   orderType(server);
   rating(server)
-
+  ratingType(server)
   replenishment(server);
   purchaseRecommendationReport(server);
   userSalary(server);
@@ -379,6 +381,8 @@ function routes(server) {
   invoiceProduct(server)
   OrderUpiPaymentReport(server)
   locationRack(server)
+  googleConnect(server)
+
   /* GET api root */
   server.get("/", (req, res, next) => {
     res.json(Response.OK, "OK");

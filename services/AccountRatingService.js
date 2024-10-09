@@ -1,11 +1,12 @@
 // const Rating = require("../db/models/Rating");
+const { Op, Sequelize } = require("sequelize");
 const ObjectName = require("../helpers/ObjectName");
 const { OK, BAD_REQUEST, UPDATE_SUCCESS } = require("../helpers/Response");
 const DataBaseService = require("../lib/dataBaseService");
 const Request = require("../lib/request");
 const { defaultDateFormat } = require("../lib/utils");
 const History = require("../services/HistoryService");
-const { Rating, Tag } = require("../db").models;
+const { Rating, RatingType } = require("../db").models;
 const RatingModal = new DataBaseService(Rating);
 
 class AccountRatingService {
@@ -37,56 +38,56 @@ class AccountRatingService {
   }
 
   // delete
-    static async del(req, res) {
-      try {
-        const id = req.params.id;
-        const company_id = Request.GetCompanyId(req);
+  static async del(req, res) {
+    try {
+      const id = req.params.id;
+      const company_id = Request.GetCompanyId(req);
 
-        await Rating.destroy({ where: { id: id, company_id: company_id } });
+      await Rating.destroy({ where: { id: id, company_id: company_id } });
 
-        res.json(200, { message: 'Rating Deleted' });
+      res.json(200, { message: 'Rating Deleted' });
 
-        res.on('finish', async () => {
-          History.create('Rating Deleted', req, ObjectName.ACCOUNT_RATING, id);
-        });
-      } catch (err) {
-        console.log(err);
-        return res.json(400, { message: err.message });
-      }
+      res.on('finish', async () => {
+        History.create('Rating Deleted', req, ObjectName.ACCOUNT_RATING, id);
+      });
+    } catch (err) {
+      console.log(err);
+      return res.json(400, { message: err.message });
     }
+  }
 
   //get
-    static async get(req, res, next) {
-      try {
-        const { id } = req.params;
-        let companyId = Request.GetCompanyId(req);
+  static async get(req, res, next) {
+    try {
+      const { id } = req.params;
+      let companyId = Request.GetCompanyId(req);
 
-        if (!id) {
-          return res.json(BAD_REQUEST, { message: 'Rating id is required' });
-        }
-
-        const accountRatingDetail = await Rating.findOne({
-          where: { id: id, company_id: companyId },
-        });
-
-
-        if (!accountRatingDetail) {
-          return res.json(BAD_REQUEST, { message: 'Rating not found' });
-        }
-
-        const data = {
-          id,
-          account_id: accountRatingDetail.account_id,
-          rating_tag_id: accountRatingDetail?.rating_tag_id, // Safely access the name property of typeData
-          rating: accountRatingDetail?.rating,
-          comment: accountRatingDetail?.comment,
-        };
-        res.json(OK, { data: data });
-      } catch (err) {
-        console.log(err);
-        return res.json(400, { message: err.message });
+      if (!id) {
+        return res.json(BAD_REQUEST, { message: 'Rating id is required' });
       }
+
+      const accountRatingDetail = await Rating.findOne({
+        where: { id: id, company_id: companyId },
+      });
+
+
+      if (!accountRatingDetail) {
+        return res.json(BAD_REQUEST, { message: 'Rating not found' });
+      }
+
+      const data = {
+        id,
+        account_id: accountRatingDetail.account_id,
+        rating_tag_id: accountRatingDetail?.rating_tag_id, // Safely access the name property of typeData
+        rating: accountRatingDetail?.rating,
+        comment: accountRatingDetail?.comment,
+      };
+      res.json(OK, { data: data });
+    } catch (err) {
+      console.log(err);
+      return res.json(400, { message: err.message });
     }
+  }
 
   // Update
   static async update(req, res) {
@@ -180,6 +181,8 @@ class AccountRatingService {
         createdAt: "createdAt",
         updatedAt: "updatedAt",
         id: "id",
+        rating: "rating",
+        comment: "comment",
       };
 
       const sortParam = sort || "name";
@@ -206,10 +209,18 @@ class AccountRatingService {
       if (searchTerm) {
         where[Op.or] = [
           {
-            name: {
+            comment: {
               [Op.iLike]: `%${searchTerm}%`,
             },
           },
+          {
+            '$typeData.name$': {
+              [Op.iLike]: `%${searchTerm}%`,
+            },
+          },
+          Sequelize.where(Sequelize.cast(Sequelize.col("rating"), "TEXT"), {
+            [Op.iLike]: `%${searchTerm}%`,
+          }),
         ];
       }
 
@@ -218,8 +229,9 @@ class AccountRatingService {
         include: [
           {
             required: false,
-            model: Tag,
-            as: "typeData",
+            model: RatingType,
+            as: "ratingTypeData",
+            attributes: ["id", "name"],
           },
         ],
         where,
@@ -242,7 +254,7 @@ class AccountRatingService {
       }
 
       for (const ratingData of results.rows) {
-        const typeData = ratingData.typeData; // Extract typeData from ratingData
+        const typeData = ratingData.ratingTypeData; // Extract typeData from ratingData
 
         data.push({
           id: ratingData.id,
@@ -261,7 +273,7 @@ class AccountRatingService {
         totalCount: results.count,
         currentPage: page,
         pageSize,
-        data: data,
+        data,
       });
     } catch (err) {
       console.error(err);

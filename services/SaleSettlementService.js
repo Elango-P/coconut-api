@@ -565,7 +565,7 @@ const search = async (req, res, next) => {
 
     const timeZone = Request.getTimeZone(req)
 
-    let customDate = DateTime.getCustomDateTime(selectedDate, timeZone)
+    let date = DateTime.getCustomDateTime(selectedDate || req.query?.date, timeZone)
 
     const where = {};
 
@@ -597,11 +597,11 @@ const search = async (req, res, next) => {
         where.sales_executive = UserId;
       }
     }
-    if (Number.isNotNull(selectedDate)) {
+    if (date && (Number.isNotNull(selectedDate) || Number.isNotNull(req.query?.date))) {
       where.date = {
         [Op.and]: {
-          [Op.gte]: customDate?.startDate,
-          [Op.lte]: customDate?.endDate,
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }
@@ -791,11 +791,11 @@ const search = async (req, res, next) => {
 
     let params = {
       company_id: company_id,
-      user: Number.isNotNull(salesExecutive) ? salesExecutive : null,
+      user: where.sales_executive,
       type: Number.isNotNull(type) ? type : null,
       status: Number.isNotNull(status) ? [status] : null,
-      startDate: startDate,
-      endDate: endDate,
+      startDate: date?.startDate ? date?.startDate: startDate,
+      endDate: date?.endDate ? date?.endDate: endDate,
       searchTerm
     }
     let totalAmount;

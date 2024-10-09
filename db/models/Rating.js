@@ -1,5 +1,7 @@
+
 module.exports = (sequelize, DataTypes) => {
   const Tag = require("./Tag")(sequelize, DataTypes);
+  const RatingType = require("./RatingType")(sequelize, DataTypes);
 
   const Rating = {
     id: {
@@ -51,6 +53,10 @@ module.exports = (sequelize, DataTypes) => {
 
   rating.belongsTo(Tag, {
     as: "typeData",
+    foreignKey: "rating_tag_id",
+  });
+  rating.belongsTo(RatingType, {
+    as: "ratingTypeData",
     foreignKey: "rating_tag_id",
   });
   return rating;

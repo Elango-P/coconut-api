@@ -1,5 +1,4 @@
 const { User, Attendance, Holiday, UserEmployment, SchedulerJob, Shift } = require("../../../db").models;
-const { TYPE_LEAVE, TYPE_ADDITIONAL_LEAVE } = require("../../../helpers/Attendance");
 const utils = require("../../../lib/utils");
 const moment = require("moment");
 const DateTime = require("../../../lib/dateTime");
@@ -13,6 +12,7 @@ const AttendanceService = require("../../../services/AttendanceService");
 const Status = require("../../../helpers/Status");
 const { Sequelize, Op } = require("sequelize");
 const DataBaseService = require("../../../lib/dataBaseService");
+const AttendanceTypeService = require("../../../services/AttendanceTypeService");
 const shiftService = new DataBaseService(Shift);
 const UserEmploymentService = new DataBaseService(UserEmployment);
 
@@ -37,11 +37,14 @@ const addAbsentRecord = async (id, todayDate, companyId, working_days, UserEmplo
       const workingDays = working_days.split(",");
 
       if (workingDays.includes(day)) {
+      let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: companyId})
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: companyId})
+
         await Attendance.create({
           type:
             UserEmployment && UserEmployment?.leave_balance && UserEmployment?.leave_balance > 0
-              ? TYPE_LEAVE
-              : TYPE_ADDITIONAL_LEAVE,
+              ? leaveIds[0]
+              : additionalDayIds[0],
           user_id: id,
           days_count: UserEmployment && UserEmployment?.leave_balance && UserEmployment?.leave_balance > 0 ? 1 : 2,
           shift_id: shift_id,

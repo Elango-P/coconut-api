@@ -36,6 +36,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      force_logout : {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       rating: {
         type: DataTypes.INTEGER,
         allowNull: true,

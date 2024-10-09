@@ -406,7 +406,8 @@ class PurchaseService {
         excludeStatus,
         userId,
         purchase_manage_others,
-        showTotal
+        showTotal,
+        timeZone
       } = params;
 
       const where = new Object();
@@ -464,6 +465,17 @@ class PurchaseService {
           [Op.and]: {
             [Op.gte]: startDate,
             [Op.lte]: endDate,
+          },
+        };
+      }
+
+      let date = DateTime.getCustomDateTime(params.date, timeZone)
+
+      if (Number.isNotNull(params.date)) {
+        where.purchase_date = {
+          [Op.and]: {
+            [Op.gte]: date?.startDate,
+            [Op.lte]: date?.endDate,
           },
         };
       }
@@ -661,7 +673,7 @@ class PurchaseService {
             );
           }
 
-          if (showTotal) {
+          if (accountspurchaseList?.length > 0 && showTotal) {
             let lastReCord = ObjectHelper.createEmptyRecord(accountspurchaseList[0])
             lastReCord.net_amount = totalAmount || "";
             accountspurchaseList.push(lastReCord);
@@ -1030,7 +1042,10 @@ class PurchaseService {
   static async report(params, companyId) {
     try {
 
-      let { startDate, endDate, vendor, type } = params;
+      let { startDate, endDate, vendor, type, timeZone } = params;
+
+      let date = DateTime.getCustomDateTime(params?.date, timeZone)
+
       const where = new Object();
 
       if (vendor && parseInt(vendor)) {
@@ -1058,6 +1073,16 @@ class PurchaseService {
           },
         };
       }
+
+      if (date && Number.isNotNull(params?.date)) {
+        where.purchase_date = {
+          [Op.and]: {
+            [Op.gte]: date?.startDate,
+            [Op.lte]: date?.endDate,
+          },
+        };
+      }
+
       where.company_id = companyId;
 
       const query = {

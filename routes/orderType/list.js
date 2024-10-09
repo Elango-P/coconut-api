@@ -10,7 +10,7 @@ async function Get(req, res, next) {
     if (!companyId) {
       return res.json(Response.BAD_REQUEST, { message: "Company Not Exists" });
     }
-    let data = await OrderTypeService.list(companyId);
+    let data = await OrderTypeService.list(req.query, companyId);
     res.json(data);
   } catch (err) {
     console.log(err);

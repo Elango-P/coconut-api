@@ -49,7 +49,7 @@ class TicketTestCaseService {
         project_id: data?.project_id,
         summary: data?.summary ? data?.summary : "",
         user_id: data?.user_id ? data?.user_id : userId,
-        module_tag_id: data?.moduleTag ? data?.moduleTag :null,
+        module_tag_id: data?.moduleTag ? data?.moduleTag : null,
         comments: data?.comments,
         test_case_id: await TicketTestNumber(companyId)
       };
@@ -94,12 +94,12 @@ class TicketTestCaseService {
       id: "id",
       name: "name",
       module_tag_id: "module_tag_id",
-      test_case_id:"test_case_id",
-      expected_result: "expectedResult",
+      test_case_id: "test_case_id",
+      expected_result: "expected_result",
       prerequisite: "prerequisite",
-      test_data: "testData",
+      test_data: "test_data",
       description: "description",
-      test_steps: "testSteps",
+      test_steps: "test_steps",
       createdAt: "createdAt",
       updatedAt: "updatedAt",
     };

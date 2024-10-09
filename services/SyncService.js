@@ -2,7 +2,7 @@
 const { Op } = require("sequelize");
 const DateTime = require("../lib/dateTime");
 
-const { sync, ProductPrice, productIndex, status } = require("../db").models;
+const { sync, ProductPrice, productIndex, status,OrderType } = require("../db").models;
 
 const History = require("../services/HistoryService");
 
@@ -17,6 +17,7 @@ const ShiftService = require("./ShiftService");
 const { getSettingValue } = require("./SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../helpers/Setting");
 const StatusService = require("../services/StatusService");
+const Setting = require("../helpers/Setting");
 
 /**
  * Check whether sync exist or not by object_id
@@ -492,6 +493,7 @@ const syncToMobile = async (query, companyId,userId) => {
                     id: value.id,
                     name: value.name,
                     objectName: value.object_name,
+                    objectId: value.object_id,
                     colorCode: value.color_code,
                     sortOrder: value.sort_order,
                     nextStatusIds: value.next_status_id,
@@ -509,11 +511,27 @@ const syncToMobile = async (query, companyId,userId) => {
             }
         }
 
+        const orderTypes = await OrderType.findAll({ where: { company_id: companyId } });
+        const orderTypeList = [];
+        if(orderTypes && orderTypes.length>0){
+            for (const OrderTypeData of orderTypes) {
+                orderTypeList.push({
+                    name: OrderTypeData?.name,
+                    id: OrderTypeData?.id,
+                    companyId: OrderTypeData?.company_id,
+                    show_customer_selection: OrderTypeData?.show_customer_selection,
+                    allow_store_order: OrderTypeData?.allow_store_order ,
+                    allow_delivery: OrderTypeData?.allow_delivery
+                });
+            }
+        }
+       
 
         return ({
             productList: productList,
             priceList: priceList,
             statusList: statusList,
+            orderTypeList: orderTypeList,
         });
 
     } catch (err) {

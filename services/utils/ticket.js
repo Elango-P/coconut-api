@@ -43,7 +43,7 @@ const {
   sendTicketStatusChangedNotification,
   sendReporterNotification,
   sendReviewerNotification,
-  sendETAChangeNotification,
+  sendDueDateChangeNotification,
   sendTicketAssigneeChangedNotification,
 } = require("../../services/notifications/ticket");
 
@@ -1256,7 +1256,7 @@ const ticketUtils = (module.exports = {
       }
 
       ticketUtils.getUserDetailById(assigned_to, (err, userDetails) => {
-        sendETAChangeNotification(
+        sendDueDateChangeNotification(
           loggedInUser,
           loggedInSlackId,
           ticketDetails,

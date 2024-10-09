@@ -6,7 +6,7 @@ const update = require("./update");
 const del = require("./delete");
 const updateStatus = require("./updateStatus");
 const clone = require("./clone");
-const etaRequest = require("./etaRequest");
+const dueDateRequest = require("./dueDateRequest");
 const getPendingTicket = require("./getPendingTicket");
 const summery = require("./summery");
 const createSubTask = require("./subTask");
@@ -21,7 +21,7 @@ module.exports = (server) => {
   server.del("/v1/ticket/:id", verifyToken, del);
 	server.put("/v1/ticket/status/:id", verifyToken, updateStatus);
   server.put("/v1/ticket/clone/:id", verifyToken, clone);
-  server.post("/v1/ticket/change/eta/request", verifyToken, etaRequest);
+  server.post("/v1/ticket/change/eta/request", verifyToken, dueDateRequest);
   server.get("/v1/ticket/pending", verifyToken, getPendingTicket);
   server.get("/v1/ticket/summery", verifyToken, summery);
   server.get("/v1/ticket/create/subTask", verifyToken, createSubTask);

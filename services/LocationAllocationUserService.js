@@ -7,8 +7,9 @@ const Request = require("../lib/request");
 const history = require("./HistoryService");
 const LocationAllocationService = require("./LocationAllocationService");
 const Boolean = require("../lib/Boolean");
-const { TYPE_ADDITIONAL_LEAVE, TYPE_LEAVE } = require("../helpers/Attendance");
-const validator = require("../lib/validator")
+const validator = require("../lib/validator");
+const AttendanceTypeService = require("./AttendanceTypeService");
+const ArrayList = require("../lib/ArrayList");
 const { LocationAllocationUser, LocationAllocation, Attendance, User } = require("../db").models;
 
 class LocationAllocationUserService {
@@ -182,14 +183,16 @@ class LocationAllocationUserService {
       if (!validOrder.includes(sortDirParam)) {
         return res.json(Response.BAD_REQUEST, { message: "Invalid sort order" });
       }
-
+      let includeIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true,is_additional_leave: true, company_id: companyId})
 
       const where = {};
 
       where.company_id = companyId;
 
-      where.type = {
-        [Op.in]: [TYPE_ADDITIONAL_LEAVE, TYPE_LEAVE]
+      if(ArrayList.isArray(includeIds)){
+        where.type = {
+          [Op.in]: includeIds
+        }
       }
 
       if (date) {

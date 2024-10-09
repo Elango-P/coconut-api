@@ -444,10 +444,12 @@ const get = async (params, res) => {
   try {
     let {id, company_id,  object_id,  } = params
 
-    if (!id && !object_id) {
+    if (!id && !object_id && res) {
       return res.json(400, { message: 'Invalid Id' });
     }
-
+    if (!object_id && !res) {
+      return null
+    }
     let where={}
     if(id){
       where.id=id

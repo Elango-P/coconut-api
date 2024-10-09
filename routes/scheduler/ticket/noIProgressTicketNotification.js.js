@@ -13,6 +13,7 @@ const SlackService = require('../../../services/SlackService');
 const Attendance = require("../../../helpers/Attendance");
 const { Op } = require("sequelize");
 const DateTime = require("../../../lib/dateTime");
+const AttendanceTypeService = require("../../../services/AttendanceTypeService");
 const SchedulerJobService = new DataBaseService(SchedulerJob);
 const { User, TicketIndex, Slack } = require('../../../db').models;
 
@@ -36,6 +37,7 @@ module.exports = async function (req, res) {
         where: { company_id: params.companyId },
         attributes: ['id', 'name'],
       });
+      let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: params?.companyId})
       const inProgressTicket = await Promise.all(
         users.map(async (user) => {
           const list = await TicketIndex.findAll({
@@ -56,7 +58,7 @@ module.exports = async function (req, res) {
             user_id: filteredUserList[i].user,
             company_id: params.companyId,
             date: DateTime.getSQlFormattedDate(new Date()),
-            type: { [Op.ne]: Attendance.TYPE_LEAVE },
+            type: { [Op.notIn]: leaveIds },
             login: { [Op.ne]: null },
             logout: { [Op.eq]: null },
           },

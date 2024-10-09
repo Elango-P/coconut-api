@@ -49,6 +49,11 @@ class AccountTypeService {
         show_rating: data?.show_rating,
         show_file: data?.show_file,
         show_payment: data?.show_payment,
+        show_addresses: data?.show_addresses,
+        show_agreement: data?.show_agreement,
+        show_contact: data?.show_contact,
+        show_custom_field: data?.show_custom_field,
+        show_settings: data?.show_settings,
       };
 
       const accountType = await AccountTypeModal.create(detail);
@@ -163,6 +168,11 @@ class AccountTypeService {
           show_rating: accountTypeData?.show_rating,
           show_file: accountTypeData?.show_file,
           show_payment: accountTypeData?.show_payment,
+          show_addresses: accountTypeData?.show_addresses,
+          show_agreement: accountTypeData?.show_agreement,
+          show_contact: accountTypeData?.show_contact,
+          show_custom_field: accountTypeData?.show_custom_field,
+          show_settings: accountTypeData?.show_settings,
         });
       }
 
@@ -192,7 +202,7 @@ class AccountTypeService {
       const detail = {
         name: name,
         status: data && data.status ? data.status.value : data,
-        category:Number.Get(data.category),
+        category: Number.Get(data.category),
         show_product: data?.show_product,
         show_purchase: data?.show_purchase,
         show_purchase_order: data?.show_purchase_order,
@@ -201,6 +211,11 @@ class AccountTypeService {
         show_rating: data?.show_rating,
         show_file: data?.show_file,
         show_payment: data?.show_payment,
+        show_addresses: data?.show_addresses,
+        show_agreement: data?.show_agreement,
+        show_contact: data?.show_contact,
+        show_custom_field: data?.show_custom_field,
+        show_settings: data?.show_settings,
       };
 
       const save = await accountTypeExist.update(detail);
@@ -264,7 +279,7 @@ class AccountTypeService {
       res.on('finish', async () => {
         History.create('AccountType Deleted', req, ObjectName.ACCOUNT, id);
       });
-      
+
     } catch (err) {
       console.log(err);
     }
@@ -275,9 +290,9 @@ class AccountTypeService {
 
       where.company_id = companyId;
 
-      let statusValue = !isKeyAvailable(params,"status") ? Status.ACTIVE : isKeyAvailable(params,"status") && Number.isNotNull(params?.status) ? params?.status : null;
-      let defaultValue = isKeyAvailable(params,"defaultValue") && Number.isNotNull(params?.defaultValue) ? params?.defaultValue :null
-      where[Op.or]= [
+      let statusValue = !isKeyAvailable(params, "status") ? Status.ACTIVE : isKeyAvailable(params, "status") && Number.isNotNull(params?.status) ? params?.status : null;
+      let defaultValue = isKeyAvailable(params, "defaultValue") && Number.isNotNull(params?.defaultValue) ? params?.defaultValue : null
+      where[Op.or] = [
         { status: { [Op.or]: [statusValue, null] } },
         { id: { [Op.or]: [defaultValue, null] } }
       ]
@@ -296,7 +311,7 @@ class AccountTypeService {
           value: accountTypeData.id,
           label: accountTypeData.name,
           id: accountTypeData.id,
-          category:accountTypeData.category
+          category: accountTypeData.category
 
         });
       }
@@ -308,9 +323,12 @@ class AccountTypeService {
     }
   }
 
-  static async getAccountTypeByCategory(category,companyId) {
+  static async getAccountTypeByCategory(params, whereCondition={}) {
+    let { category, companyId } = params;
     try {
-      const where = {};
+      const where = {
+        ...whereCondition
+      };
 
       where.company_id = companyId;
 
@@ -325,7 +343,7 @@ class AccountTypeService {
 
       const results = await AccountTypeModal.find(query);
 
-      const accountTypeIds = results && results.length>0 ? results.map(value=> value.id):[]
+      const accountTypeIds = results && results.length > 0 ? results.map(value => value.id) : []
 
       return accountTypeIds;
     } catch (err) {
@@ -334,5 +352,5 @@ class AccountTypeService {
     }
   }
 }
-  
+
 module.exports = AccountTypeService;

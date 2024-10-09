@@ -5,6 +5,8 @@ module.exports = (sequelize, DataTypes) => {
   const shift = require('./Shift')(sequelize, DataTypes);
   const status = require('./status')(sequelize, DataTypes);
   const orderType = require('./OrderType')(sequelize, DataTypes);
+  const account = require("./account")(sequelize, DataTypes);
+
   const orderSchema = {
     id: {
       allowNull: false,
@@ -41,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    
+
     sales_executive_user_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -103,6 +105,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    reason: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   };
 
   const order = sequelize.define('order', orderSchema, {
@@ -136,6 +142,10 @@ module.exports = (sequelize, DataTypes) => {
   order.belongsTo(orderType, {
     as: 'orderTypeDetail',
     foreignKey: 'type',
+  });
+  order.belongsTo(account, {
+    as: 'accountDetail',
+    foreignKey: 'customer_account',
   });
   return order;
 };

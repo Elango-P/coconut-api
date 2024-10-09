@@ -14,6 +14,6 @@ module.exports = (server) => {
     server.del("/v1/orderType/:id", verifyToken, del);
     server.get("/v1/orderType/:id", verifyToken, getDetail);
     server.put("/v1/orderType/:id", verifyToken, update);
-    server.get("/v1/orderType", verifyToken, list);
+    server.get("/v1/orderType/list", verifyToken, list);
 
 }

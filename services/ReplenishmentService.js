@@ -336,7 +336,10 @@ const query = {
             distributionCenterQuantity: distribution_center_quantity,
             ownerName: userDetails && String.concatName(userDetails?.first_name,userDetails?.last_name),
             barcode: priceData && priceData.barcode,
-            status:replenishProducts.rows[i] && replenishProducts.rows[i].status == Status.COMPLETED?Status.COMPLETED_TEXT:Status.PENDING_TEXT
+            status:replenishProducts.rows[i] && replenishProducts.rows[i].status == Status.COMPLETED?Status.COMPLETED_TEXT:Status.PENDING_TEXT,
+            userName: userDetails?.first_name,
+            userLastName: userDetails?.last_name,
+            userAvatarUrl: userDetails?.media_url,
           };
 
           data.push(product);

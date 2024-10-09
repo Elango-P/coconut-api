@@ -42,6 +42,7 @@ const { companyService } = require("./CompanyService");
 const Permission = require("../helpers/Permission");
 const Response = require("../helpers/Response");
 const ArrayList = require("../lib/ArrayList");
+const user = require("../helpers/User");
 
 module.exports = {
   /**
@@ -181,7 +182,7 @@ module.exports = {
 
       const companyId = Request.GetCompanyId(req);
 
-      const { status, userIds, forceLogout, force_sync, reset_mobile_data, profile_picture_update, designation, salary } =
+      const { status, userIds, forceLogout, force_sync, reset_mobile_data, profile_picture_update,force_logout_soft, designation, salary } =
         data;
 
       if (userIds && userIds.length == 0) {
@@ -210,6 +211,10 @@ module.exports = {
         if (reset_mobile_data == false) {
           updateData.reset_mobile_data = 0;
         }
+
+		if (force_logout_soft == true) {
+			updateData.force_logout = user.FORCE_LOGOUT_ENABLE;
+		}
 
 		if (designation) {
 			updateData.designation = designation;
@@ -285,42 +290,6 @@ module.exports = {
               }
           }
       }
-    }
-  },
-  async updatDateOfJoiningByAttendnace(companyId) {
-    try {
-      let Query = `
-		  WITH users AS (
-			SELECT DISTINCT
-				id,
-				date_of_joining
-			FROM "user"
-			WHERE company_id = ${companyId} AND date_of_joining IS NULL
-		)
-		
-		SELECT DISTINCT ON (attendance.user_id)
-			user_id,
-			login
-		FROM attendance
-		JOIN users ON user_id = users.id
-		WHERE attendance.company_id = ${companyId}
-		ORDER BY user_id, login ASC;
-		  `;
-
-      let queryData = await db.connection.query(Query);
-
-      let list = queryData[1];
-
-      if (list && list.rows && list.rows.length > 0) {
-        for (let i = 0; i < list.rows.length; i++) {
-          await User.update(
-            { date_of_joining: list.rows[i].login },
-            { where: { id: list.rows[i].user_id, company_id: companyId } }
-          );
-        }
-      }
-    } catch (err) {
-      console.log(err);
     }
   },
 
@@ -514,6 +483,7 @@ async  AddStartdateAndEnddateFromAttendance(
 		  if(user_id){
 			reIndexData.user_id = user_id
 		  }
+		  reIndexData.force_logout = userDetail.force_logout
 
 		  if(userDetail.name){
 			reIndexData.first_name = userDetail.name
@@ -713,9 +683,7 @@ async  AddStartdateAndEnddateFromAttendance(
 			whereObj.mobile_number1 = body.email;
 		  } else {
 			whereObj.email = body.email;
-
 		  }
-		  console.log("whereObj------------------------", whereObj)
 	  
 		  let user = await User.findOne({
 			attributes: [
@@ -763,6 +731,7 @@ async  AddStartdateAndEnddateFromAttendance(
 			firstName: user.name,
 			lastName: user.last_name,
 			reset_mobile_data: user.reset_mobile_data,
+			force_logout : user.force_logout,
 			rating : user.rating,
 			companyId: user.company_id,
 			time_zone: user.time_zone,

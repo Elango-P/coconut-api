@@ -36,7 +36,7 @@ const Response = require("../../helpers/Response");
       params.currentLocation = Request.getCurrentLocationId(req);
       if (!lastCheckIn) {
         return res.json(Response.BAD_REQUEST, {
-          message: "Check-in record is missing",
+          message: "Location Is Missing",
         });
       }
     }

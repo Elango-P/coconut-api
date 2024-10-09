@@ -8,6 +8,7 @@ const validator = require("../lib/validator");
 const Boolean = require("../lib/Boolean");
 const  statusService  = require("./StatusService");
 const Permission = require("../helpers/Permission");
+const Number = require("../lib/Number");
 
 class LeadService {
   static async create(req, res, next) {
@@ -174,6 +175,7 @@ class LeadService {
   }
 
   static async update(req, res, next) {
+    try{
     const { id } = req.params;
     const companyId = Request.GetCompanyId(req);
     let data = req.body;
@@ -198,16 +200,22 @@ class LeadService {
       notes: data?.notes ? data?.notes : "",
       mobile: data?.mobile ? data?.mobile : "",
       designation : data ?.designation ? data?.designation : "",
-      owner_id : data ?.owner_id,
+      owner_id : Number.Get(data ?.owner_id),
+      status: Number.Get(data?.status)
     };
 
     Lead.update(updateData, { where: { id: id, company_id: companyId } }).then((response) => {
+      res.json({ message: "Lead Updated" });
       res.on("finish", async () => {
         this.createAuditLog(data, leadDetail, req, id);
       });
-      res.json({ message: "Lead Updated" });
     });
+  } catch (err) {
+    req.log.error(err);
+    console.log(err);
+    return next(err);
   }
+}
 
   static async createAuditLog(updatedData, olddata, req, id) {
     let auditLogMessage = new Array();

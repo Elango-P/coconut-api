@@ -5,6 +5,7 @@ const get = require("./get");
 const search = require("./search");
 const update = require("./update");
 const list = require("./list");
+const leaveType = require("./leaveType");
 
 
 module.exports = (server) => {
@@ -14,4 +15,5 @@ module.exports = (server) => {
 	server.put("/v1/attendanceType/update/:id", verifyToken, update);
 	server.get("/v1/attendanceType/:id", verifyToken, get);
 	server.get("/v1/attendanceType", verifyToken, list);
+	server.get("/v1/attendanceType/leaveType", verifyToken, leaveType);
 };

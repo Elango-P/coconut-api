@@ -1,6 +1,7 @@
 const Permission = require("../../helpers/Permission");
 const Response = require("../../helpers/Response");
 const { OK } = require("../../helpers/Response");
+const DateTime = require("../../lib/dateTime");
 const Request = require("../../lib/request");
 const transferProductService = require("../../services/TransferProductService");
 
@@ -18,6 +19,7 @@ async function search(req, res, next) {
   if (!hasPermission) {
     return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
   }
+  let timeZone = Request.getTimeZone(req);
   let {
     page,
     pageSize,
@@ -28,7 +30,11 @@ async function search(req, res, next) {
     user,
     location,
     date,
+    startDate,
+    endDate
   } = req.query;
+
+  let customDate = DateTime.getCustomDateTime(date,timeZone)
  
   let params = {
     page,
@@ -39,8 +45,9 @@ async function search(req, res, next) {
     pagination,
     user,
     location,
-    date,
     company_id,
+    startDate: customDate ? customDate?.startDate : startDate,
+    endDate: customDate ? customDate?.endDate : endDate,
   };
   let data = await transferProductService.userWiseReport(params, res);
   res.json(OK, {

@@ -241,10 +241,6 @@ module.exports = [
     value: "/v1/scheduler/user/userIncompleteProfileReportEmail"
   },
   {
-    name: "User: Update Date Of Joining based on Attendance",
-    api_url: "/v1/scheduler/user/userUpdateDateOfJoiningByAttendance",
-  },
-  {
     name: "User: No Check-In Report",
     api_url: "/v1/scheduler/user/noCheckinActivityReport",
   },
@@ -261,7 +257,7 @@ module.exports = [
     api_url: "/v1/scheduler/user/reindex",
   },
   {
-    name: "User: Add Startdate and Enddate from Attendance",
+    name: "User: Update Start Date and End Date from Attendance",
     api_url: "/v1/scheduler/user/addUserStartdateAndEnddateFromAttendance",
   },
   {

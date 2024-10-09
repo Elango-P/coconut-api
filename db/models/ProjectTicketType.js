@@ -299,6 +299,10 @@ module.exports = (sequelize, DataTypes) =>{
 			type: DataTypes.STRING,
 			allowNull: true
 		},
+		fine_type: {
+			type: DataTypes.INTEGER,
+			allowNull: true,
+		  },
 
 	}, {
 		tableName: "project_ticket_type",

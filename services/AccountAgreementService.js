@@ -1,3 +1,4 @@
+const { Op, Sequelize } = require("sequelize");
 const ObjectName = require('../helpers/ObjectName');
 const { OK, BAD_REQUEST, UPDATE_SUCCESS } = require('../helpers/Response');
 const DateTime = require('../lib/dateTime');
@@ -280,6 +281,22 @@ class AccountAgreementService {
     const status = req.query.status;
     if (status) {
       where.status = status;
+    }
+
+    const searchTerm = search ? search.trim() : null;
+
+    if (searchTerm) {
+      where[Op.or] = [
+        Sequelize.where(Sequelize.cast(Sequelize.col("agreement_start_date"), "TEXT"), {
+          [Op.iLike]: `%${searchTerm}%`,
+        }),
+        Sequelize.where(Sequelize.cast(Sequelize.col("agreement_end_date"), "TEXT"), {
+          [Op.iLike]: `%${searchTerm}%`,
+        }),
+        Sequelize.where(Sequelize.cast(Sequelize.col("agreement_renewal_date"), "TEXT"), {
+          [Op.iLike]: `%${searchTerm}%`,
+        }),
+      ];
     }
 
     const query = {

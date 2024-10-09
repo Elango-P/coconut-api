@@ -15,6 +15,7 @@ const { WebClient } = require('@slack/web-api');
 
 const setting = require("../helpers/Setting");
 const { isNotEmpty } = require("../lib/validator");
+const Response = require("../helpers/Response");
 
 class SlackService {
 
@@ -115,34 +116,34 @@ class SlackService {
     }
 
     static async SendTextMessage(companyId, channelId, blocks, text) {
-        try{
+        try {
 
-        let accessToken = await this.authenticate(companyId);
+            let accessToken = await this.authenticate(companyId);
 
-        let body = {
-            channel: channelId,
-        }
-
-        if (blocks) {
-            body.blocks = blocks;
-        }
-
-        if (text) {
-            body.text = text;
-        }
-
-        const response = await axios.post(
-            this.SEND_MESSAGE,
-            body,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                },
+            let body = {
+                channel: channelId,
             }
-        );
 
-        return response;
+            if (blocks) {
+                body.blocks = blocks;
+            }
+
+            if (text) {
+                body.text = text;
+            }
+
+            const response = await axios.post(
+                this.SEND_MESSAGE,
+                body,
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            return response;
         }catch(err){
             console.log(err);
         }
@@ -186,100 +187,120 @@ class SlackService {
 
     static async getSlackUserList(companyId, callback) {
         try {
-
             let accessToken = await this.authenticate(companyId);
 
             if (!accessToken) {
                 throw { message: "Slack Not Connected" }
             }
 
-            const response = await axios.get(
-                this.GET_USER_LIST,
-                {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
+            let retryCount = 0;
+            const maxRetries = 3;
 
-            return response && response.data && response.data.members;
+            while (retryCount < maxRetries) {
+                try {
+                    const response = await axios.get(
+                        this.GET_USER_LIST,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json',
+                            },
+                        }
+                    );
+
+                    if (response && response.data && response.data.members) {
+                        return response.data.members;
+                    }
+
+                } catch (err) {
+                    if (err.response && err.response.status === Response.TOO_MANY_REQUESTS) {
+                        const retryAfter = err.response.headers['retry-after'] || 60;
+                        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                        retryCount++;
+                    } else {
+                        throw err;
+                    }
+                }
+            }
+
+            throw { message: 'Max retry attempts reached' };
 
         } catch (err) {
             console.log(err);
         }
 
+        // Fallback to using Slack WebClient if the above fails
         const slackClient = new WebClient(config.slack_bot_oauth_access_token);
         const response = await slackClient.users.list();
-        let data = response && response?.members ? response?.members : []
-        return callback(data)
+        let data = response && response?.members ? response?.members : [];
+        return callback(data);
     }
 
     static async postMessage(token, slackId, text, as_user, callback) {
         try {
-        if (!token || !slackId || !text) {
-            return callback();
+            if (!token || !slackId || !text) {
+                return callback();
+            }
+
+            if (!token) {
+                return callback();
+            }
+
+            let asUserParams = '';
+            if (as_user) {
+                asUserParams = `&as_user=${as_user}`;
+            }
+
+            text = `${text}`;
+
+            const option = {
+                url: `https://slack.com/api/chat.postMessage?channel=${slackId}&text=${text}&pretty=1${asUserParams}`,
+                method: 'POST',
+                json: true,
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Authorization: `Bearer ${token}`,
+                },
+            };
+
+            request.post(option, () => callback());
+        } catch(err) {
+            console.log(err);
         }
-
-        if (!token) {
-            return callback();
-        }
-
-        let asUserParams = '';
-        if (as_user) {
-            asUserParams = `&as_user=${as_user}`;
-        }
-
-        text = `${text}`;
-
-        const option = {
-            url: `https://slack.com/api/chat.postMessage?channel=${slackId}&text=${text}&pretty=1${asUserParams}`,
-            method: 'POST',
-            json: true,
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                Authorization: `Bearer ${token}`,
-            },
-        };
-
-        request.post(option, () => callback());
-    } catch(err) {
-        console.log(err);
-    }
     }
 
     static async postImage(token, slackId, image, as_user, callback) {
         try{
-        if (!token || !slackId || !image) {
-            return callback();
-        }
+            if (!token || !slackId || !image) {
+                return callback();
+            }
 
-        const data = {
-            url: 'https://slack.com/api/files.upload?pretty=1',
-            formData: {
-                channels: slackId,
-                file: {
-                    value: image,
-                    options: {
-                        filename: 'screenshot.png',
+            const data = {
+                url: 'https://slack.com/api/files.upload?pretty=1',
+                formData: {
+                    channels: slackId,
+                    file: {
+                        value: image,
+                        options: {
+                            filename: 'screenshot.png',
+                        },
                     },
+                    filename: 'screenshot.png',
+                    filetype: 'image/png',
+                    token: token,
                 },
-                filename: 'screenshot.png',
-                filetype: 'image/png',
-                token: token,
-            },
-        };
-        request.post(data, () => callback());
-        //    request.post(data, function (error, response, body) {
-        //     if (!error && response.statusCode == 200) {
-        //       console.log(body);
-        //     } else {
-        //       console.log(error);
-        //     }
-    }catch(err){
-        console.log(err);
-    }
+            };
+            request.post(data, () => callback());
+            //    request.post(data, function (error, response, body) {
+            //     if (!error && response.statusCode == 200) {
+            //       console.log(body);
+            //     } else {
+            //       console.log(error);
+            //     }
+        }catch(err){
+            console.log(err);
+        }
     }
 
     /**
@@ -357,45 +378,45 @@ class SlackService {
     }
 
     static async sendMessageToUser(companyId, slackUserId, text) {
-    try {
-        let accessToken = await this.authenticate(companyId);
+        try {
+            let accessToken = await this.authenticate(companyId);
 
-        if (accessToken) {
-            const slackApiUrl = 'https://slack.com/api/chat.postMessage';
+            if (accessToken) {
+                const slackApiUrl = 'https://slack.com/api/chat.postMessage';
 
-            const response = await axios.post(
-                slackApiUrl,
-                {
-                    channel: slackUserId,
-                    text: text,
-                    unfurl_links: true,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        'Content-Type': 'application/json',
+                const response = await axios.post(
+                    slackApiUrl,
+                    {
+                        channel: slackUserId,
+                        text: text,
+                        unfurl_links: true,
                     },
-                }
-            );
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
 
-            return response;
+                return response;
+            }
+        } catch(err) {
+            console.log(err);
         }
-    } catch(err) {
-        console.log(err);
-    }
     }
 
 
     static async sendOrderMessageToUser(params, blocks, customerDetail) {
-        let { companyId, slackUserId, latitude, longitude, headerText } = params;
-        
+        let { companyId, slackUserId, latitude, longitude, headerText, orderDetail } = params;
+
         try {
             const header = `<@${slackUserId}> ${headerText}`;
             let accessToken = await this.authenticate(companyId);
-    
+
             if (accessToken) {
                 const slackApiUrl = 'https://slack.com/api/chat.postMessage';
-    
+
                 // Create the initial blocks array
                 let messageBlocks = [
                     {
@@ -405,9 +426,15 @@ class SlackService {
                             "text": header
                         }
                     },
-                    ...blocks
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": orderDetail
+                        }
+                    }
                 ];
-    
+
                 // Conditionally add customerDetail section if it exists
                 if (customerDetail) {
                     messageBlocks.push({
@@ -417,7 +444,8 @@ class SlackService {
                             "text": customerDetail
                         }
                     });
-    
+                }
+
                 // Add the action buttons at the end
                 messageBlocks.push({
                     "type": "actions",
@@ -433,16 +461,16 @@ class SlackService {
                         }
                     ]
                 });
-            }
 
-    
+                messageBlocks.push(...blocks);
+
                 // Send the Slack message
                 const response = await axios.post(
                     slackApiUrl,
                     {
                         channel: slackUserId,
                         unfurl_links: true,
-                        "blocks": messageBlocks
+                        blocks: messageBlocks 
                     },
                     {
                         headers: {
@@ -451,7 +479,7 @@ class SlackService {
                         }
                     }
                 );
-    
+
                 return response;
             }
         } catch (err) {

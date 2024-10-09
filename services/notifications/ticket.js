@@ -319,7 +319,7 @@ module.exports = {
 	 * @param {*} user 
 	 * @param {*} callback 
 	 */
-	sendETAChangeNotification: async (ticket_id, requestUserId) => {
+	sendDueDateChangeNotification: async (ticket_id, requestUserId) => {
 
 		let ticketTypeDetail;
 
@@ -333,7 +333,7 @@ module.exports = {
 			throw { message: "Ticket Not Found" }
 		}
 
-		const { id, assignee_id, company_id, eta, summary, type_id, status, ticket_number } = ticketDetail;
+		const { id, assignee_id, company_id, due_date, summary, type_id, status, ticket_number } = ticketDetail;
 
 		let requestUserDetail = await UserService.getSlack(requestUserId, company_id);
 
@@ -357,12 +357,12 @@ module.exports = {
 			throw { message: "Assignee User Slack Id Not Found" }
 		}
 
-		const formattedETA = eta ? `${utils.formatDate(eta, dateTime.formats.frontendDateFormat)}` : "";
+		const formattedETA = due_date ? `${utils.formatDate(due_date, dateTime.formats.frontendDateFormat)}` : "";
 		let projectDetail = await Project.findOne(({ where : { id: ticketDetail && ticketDetail?.project_id, company_id: company_id}}))
 
 		const ticketSummary = ` <${companyDetail.portal_url}/ticket/${projectDetail?.slug}/${ticket_number}|${ticket_number} : ${summary}>`
 
-		const text = unescape(`<@${assigneeDetail.slack_id}> Your Ticket ETA changed to ${formattedETA} \n [${ticketTypeDetail ? `${ticketTypeDetail.name} -` : ""}${statusDetail.name}] ${ticketSummary}`);
+		const text = unescape(`<@${assigneeDetail.slack_id}> Your Ticket Due Date changed to ${formattedETA} \n [${ticketTypeDetail ? `${ticketTypeDetail.name} -` : ""}${statusDetail.name}] ${ticketSummary}`);
 
 		SlackService.sendMessageToUser(company_id, assigneeDetail && assigneeDetail?.slack_id, text)
 
@@ -379,7 +379,7 @@ module.exports = {
 	 * @param {*} callback
 	 */
 	setTicketETANotification: (ticket_id, ticket_url, summary, slack_id, assigned_to_name, callback) => {
-		const text = unescape(`<@${slack_id}> What is your ETA for this ticket? Please update \n <${config.webUrl}/tickets/${ticket_url}|${ticket_id} : ${summary}>`);
+		const text = unescape(`<@${slack_id}> What is your Due Date for this ticket? Please update \n <${config.webUrl}/tickets/${ticket_url}|${ticket_id} : ${summary}>`);
 
 		SlackService.sendMessage(slack_id, text, SLACK_MESSAGE_TYPE_BOT, () => callback());
 	},
@@ -497,7 +497,7 @@ try{
 			throw { message: "Ticket Not Found" }
 		}
 
-		const { assignee_id, company_id, summary, type_id, status, ticket_number,eta } = ticketDetail;
+		const { assignee_id, company_id, summary, type_id, status, ticket_number,due_date } = ticketDetail;
 
 		if (type_id) {
 			ticketTypeDetail = await ProjectTicketTypeService.getById(type_id, company_id)
@@ -523,7 +523,7 @@ try{
 		let companyDetail = await CompanyService.getCompanyDetailById(company_id);
 		if (companyDetail) {
 			const ticketSummary = ` <${companyDetail.portal_url}/ticket/${projectDetail && projectDetail?.slug}/${ticket_number}|${ticket_number} : ${summary}>`
-			const text = unescape(`<@${newAssignee && newAssignee.slack_id}> Ticket assigned to you \n [ETA: ${DateTime.shortMonthDate(eta)}] ${ticketSummary}`);
+			const text = unescape(`<@${newAssignee && newAssignee.slack_id}> Ticket assigned to you \n [Due Date: ${DateTime.shortMonthDate(due_date)}] ${ticketSummary}`);
 			SlackService.sendMessageToUser(company_id, newAssignee && newAssignee?.slack_id, text)
 		}
 
@@ -590,7 +590,7 @@ try{
 			throw { message: "Ticket Not Found" }
 		}
 
-		const { assignee_id, summary, ticketTypeId, statusId, ticket_number, eta } = ticketDetail?.data[0];
+		const { assignee_id, summary, ticketTypeId, statusId, ticket_number, due_date } = ticketDetail?.data[0];
 
 		if (ticketTypeId) {
 			ticketTypeDetail = await ProjectTicketTypeService.getById(ticketTypeId, companyId)
@@ -608,7 +608,7 @@ try{
 
 		let assignParam = {
 			token: newAssigneeDetail?.push_token,
-			title: ` Ticket assigned to you \n [ETA: ${DateTime.shortMonthDate(eta)}]`,
+			title: ` Ticket assigned to you \n [Due Date: ${DateTime.shortMonthDate(due_date)}]`,
 			message: `${ticket_number} : ${summary}`
 		}
 		let unAssignParam = {

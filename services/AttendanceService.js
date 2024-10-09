@@ -24,7 +24,8 @@ const {
   UserEmployment: UserEmploymentModel,
   Tag,
   ProjectTicketType,
-  status: StatusModel
+  status: StatusModel,
+  FineBonus
 } = require("../db").models;
 
 // Constants
@@ -43,7 +44,6 @@ const MediaService = require("../services/MediaService");
 const { Op, Sequelize } = require("sequelize");
 const Setting = require("../helpers/Setting");
 const Status = require("../helpers/Status");
-const { TYPE_LEAVE, TYPE_ADDITIONAL_LEAVE } = require("../helpers/Attendance");
 const ObjectName = require("../helpers/ObjectName");
 const UserService = require("./UserService");
 const Request = require("../lib/request");
@@ -63,6 +63,7 @@ const TicketService = require("./TicketService");
 const LocationService = require("./LocationService");
 const ShiftService = require("../services/services/ShiftService");
 const String = require("../lib/string");
+const AttendanceTypeService = require("./AttendanceTypeService");
 
 const dateTime = new DateTime();
 
@@ -377,17 +378,17 @@ const attendanceService = (module.exports = {
    * Update Productive Cost In Attendance
    *
    * @param assigned_to
-   * @param eta
+   * @param due_date
    * @param completed_at
    * @param callback
    * @returns {*}
    */
-  updateProductiveCost: (assigned_to, eta, completed_at, callback) => {
+  updateProductiveCost: (assigned_to, due_date, completed_at, callback) => {
     if (!completed_at) {
       return callback();
     }
 
-    const ticketEta = utils.formatDate(eta, dateTime.formats.mySQLDateFormat);
+    const ticketEta = utils.formatDate(due_date, dateTime.formats.mySQLDateFormat);
     const ticketEtaFilter = utils.getDateFilter(ticketEta, "", "");
     const ticketCompletedAt = utils.formatDate(
       completed_at,
@@ -401,7 +402,7 @@ const attendanceService = (module.exports = {
     IndexTicket.sum("story_points", {
       where: {
         assigned_to,
-        eta: ticketEtaFilter,
+        due_date: ticketEtaFilter,
         completed_at: completedAtFilter,
       },
     }).then((storyPoints) => {
@@ -487,10 +488,14 @@ const attendanceService = (module.exports = {
 
   async getAttendanceCount(where) {
     try {
+      let workingDayIds = await AttendanceTypeService.getAttendanceTypeId({is_working_day:true, company_id: where?.company_id})
+      let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: where?.company_id})
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: where?.company_id})
+
       const workedDays = await Attendance.count({
         where: {
           ...where,
-          type: "Working Day",
+          type: {[Op.in]: workingDayIds},
           login: { [Op.ne]: null }
         }
       });
@@ -498,13 +503,14 @@ const attendanceService = (module.exports = {
       const AdditionalDays = await Attendance.count({
         where: {
           ...where,
-          type: "Additional Day",
+          type: {[Op.in]: additionalDayIds},
           login: { [Op.ne]: null }
         }
       });
       const Leave = await Attendance.count({
         where: {
           ...where,
+          type: {[Op.in]: leaveIds},
           login: { [Op.eq]: null }
         }
       });
@@ -597,20 +603,21 @@ const attendanceService = (module.exports = {
             [Op.gte]: DateTime.CurrentStartMonth(),
             [Op.lte]: DateTime.CurrentEndMonth(),
           }
-        }
+        },
+        company_id: companyId
       })
-         let where = {};
-          where.company_id = companyId && companyId
-          where.user_id = userId && userId
-          where. date = {
-            [Op.and]: {
-              [Op.gte]: DateTime.formatDate(new Date(), DateTime.getVariable().shortMonthDate),
-              [Op.lte]: DateTime.formatDate(new Date(), DateTime.getVariable().shortMonthDate),
-            },
-          }
-          if(Number.isNotNull(currendtShiftId)){
-              where.shift_id = currendtShiftId
-          }
+      let where = {};
+      where.company_id = companyId && companyId
+      where.user_id = userId && userId
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: DateTime.formatDate(new Date(), DateTime.getVariable().shortMonthDate),
+          [Op.lte]: DateTime.formatDate(new Date(), DateTime.getVariable().shortMonthDate),
+        },
+      }
+      if(Number.isNotNull(currendtShiftId)){
+        where.shift_id = currendtShiftId
+      }
       let todayAttendance = await Attendance.findAll({where})
       const todayAttendanceData = todayAttendance.map(attendance => {
         const data = {
@@ -620,7 +627,7 @@ const attendanceService = (module.exports = {
         };
         return data;
       });
-      
+
       return {
         todayAttendance: todayAttendanceData,
         additionalDay: totalDays.AdditionalDays,
@@ -659,7 +666,7 @@ const attendanceService = (module.exports = {
       console.log(err);
     }
   },
-  async addAbsentRecord(id, date, companyId, working_days, UserEmployment, shiftId, weekDays,allowAdditionalLeave) {
+  async addAbsentRecord(id, date, companyId, working_days, UserEmployment, shiftId, weekDays) {
 
 
     try {
@@ -667,7 +674,6 @@ const attendanceService = (module.exports = {
       let day;
       let workingDays;
       let attendanceExist;
-
       if (date) {
         attendanceExist = await Attendance.findOne({
           where: { company_id: companyId, date: date, user_id: id },
@@ -677,21 +683,27 @@ const attendanceService = (module.exports = {
         if (!attendanceExist) {
           date = new Date(date);
           dayIndex = date.getDay();
-          day = weekDays[dayIndex];
-
+          day = weekDays[dayIndex-1];
           if (working_days) {
-            workingDays = working_days.split(",");
-
+            workingDays = working_days.split(",").filter(Boolean);
             if (workingDays.includes(day)) {
               let userEmploymentdata = await UserEmploymentModel.findOne({ where: { user_id: id } });
-
+              let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: companyId})
+              let additionalLeaveIds =
+                await AttendanceTypeService.getAttendanceTypeId({
+                  [Op.or]: [{ is_leave: true }, { is_additional_leave: true }],
+                  company_id: companyId,
+                 allowed_days: {
+                    [Op.iLike]: `%${day}%`,
+                  },
+                });
               await Attendance.create({
                 user_id: id,
                 date: DateTime.DateOnly(date),
                 shift_id: shiftId,
-                type: (allowAdditionalLeave == "false" || allowAdditionalLeave == null) ? TYPE_LEAVE :userEmploymentdata && userEmploymentdata?.leave_balance && userEmploymentdata?.leave_balance > 0
-                  ? TYPE_LEAVE
-                  : TYPE_ADDITIONAL_LEAVE,
+                type: userEmploymentdata && userEmploymentdata?.leave_balance && userEmploymentdata?.leave_balance > 0
+                  ? leaveIds[0]
+                  : additionalLeaveIds[0],
                 company_id: companyId,
                 days_count: userEmploymentdata && userEmploymentdata?.leave_balance && userEmploymentdata?.leave_balance > 0 ? 1 : 2
               }).then(async (attendance) => {
@@ -767,12 +779,12 @@ const attendanceService = (module.exports = {
           splitShiftIds = allowedShiftIds && allowedShiftIds.split(",");
           startDate = DateTime.isValidDate(params?.startDate) ? new Date(params?.startDate) : new Date()
           endDate = DateTime.isValidDate(params?.endDate) ? new Date(params?.endDate) : new Date()
-           schedulerDate = DateTime.getDateInTimeZone(startDate,endDate,params?.timeZone)
+          schedulerDate = DateTime.getDateInTimeZone(startDate,endDate,params?.timeZone)
 
-           employmentDate = DateTime.getDateInTimeZone(UserEmployment?.start_date?UserEmployment?.start_date:new Date(),UserEmployment?.end_date?UserEmployment?.end_date:new Date(),params?.timeZone)
+          employmentDate = DateTime.getDateInTimeZone(UserEmployment?.start_date?UserEmployment?.start_date:new Date(),UserEmployment?.end_date?UserEmployment?.end_date:new Date(),params?.timeZone)
 
 
-           result = DateTime.getMostRecentDates(schedulerDate, employmentDate);
+          result = DateTime.getMostRecentDates(schedulerDate, employmentDate);
 
           const dates = DateTime.getDateOnlyRange(result?.starDate, result?.endDate);
           if (dates && dates.length > 0) {
@@ -994,10 +1006,13 @@ const attendanceService = (module.exports = {
         return res.json(Response.BAD_REQUEST, { message: "Attendance not found" });
       }
 
+      let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: companyId})
+
+
       // Delete each attendance
       for (const attendance of attendances) {
         await attendance.destroy();
-        if (attendance && attendance.type === TYPE_LEAVE) {
+        if (attendance && leaveIds?.includes(attendance?.type)) {
           const UserEmploymentDetail = await UserEmploymentModel.findOne({
             where: {
               user_id: attendance.user.id,
@@ -1121,7 +1136,7 @@ const attendanceService = (module.exports = {
           user_id: user_id,
           date: date,
           timeZone: timeZone,
-          store_id: store_id ,
+          store_id: store_id,
           shift_id: shift?.id,
           manageOthers: false
         }
@@ -1138,7 +1153,7 @@ const attendanceService = (module.exports = {
 
             if (Number.isNotNull(tagDetail)) {
               let missingStockEntryProductCount = Number.Get(minimumStockEntryCount) - stockEntryProduct;
-             
+
               let default_amount = missingStockEntryProductCount  * Number.GetFloat(tagDetail?.default_amount);
               let createData = {
                 user: user_id,
@@ -1149,9 +1164,9 @@ const attendanceService = (module.exports = {
               };
               let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
               return {
-               fineAmount: response?.amount,
-               stockEntryCount: stockEntryProduct,
-               missingStockEntryCount: missingStockEntryProductCount
+                fineAmount: response?.amount,
+                stockEntryCount: stockEntryProduct,
+                missingStockEntryCount: missingStockEntryProductCount
               }
             }else{
               return null
@@ -1172,7 +1187,7 @@ const attendanceService = (module.exports = {
   },
 
   findAddForMinimumReplenishmentCount: async function (replenishmentMissingParams) {
-   let { user_id, date, shift, roleId, companyId, req } = replenishmentMissingParams;
+    let { user_id, date, shift, roleId, companyId, req } = replenishmentMissingParams;
 
     let isEnableFineAddForMinimumReplenishmentCount = await getSettingValueByObject(Setting.FINE_ADD_FOR_REPLENISHMENT_MISSING, companyId, roleId, ObjectName.ROLE);
     if (Number.isNotNull(isEnableFineAddForMinimumReplenishmentCount) && isEnableFineAddForMinimumReplenishmentCount == "true") {
@@ -1214,16 +1229,16 @@ const attendanceService = (module.exports = {
               );
 
               if(isEnableReplenishmentMissingFineEnquiryTicket && isEnableReplenishmentMissingFineEnquiryTicket == "true"){
-               let summary = `Replenishment - Date: ${DateTime.shortMonthDate(new Date(date))} - Shift: ${shift?.name} - Replenishment Count: ${data?.totalProductCount} - Missing Replenishment Count: ${minusReplenishmentCount}   `
-               let enquiryTicketParams = {
-                 req,
-                 company_id: companyId,
-                 summary,
-                 type: Setting.REPLENISHMENT_MISSING_ENQUIRY_TICKET_TYPE
-               }
-               await attendanceService.createEnquiryTicket(enquiryTicketParams)
+                let summary = `Replenishment - Date: ${DateTime.shortMonthDate(new Date(date))} - Shift: ${shift?.name} - Replenishment Count: ${data?.totalProductCount} - Missing Replenishment Count: ${minusReplenishmentCount}   `
+                let enquiryTicketParams = {
+                  req,
+                  company_id: companyId,
+                  summary,
+                  type: Setting.REPLENISHMENT_MISSING_ENQUIRY_TICKET_TYPE
+                }
+                await attendanceService.createEnquiryTicket(enquiryTicketParams)
               }
-             }
+            }
             return {
               fineAmount: response?.amount,
               replenishmentCount: data?.totalProductCount,
@@ -1243,55 +1258,71 @@ const attendanceService = (module.exports = {
     }
   },
   getAttendanceMonthRecord: async function (userId, page, pageSize, companyId) {
+    let whereCondition = "";
+    if (companyId) whereCondition += ` a."company_id" = ${companyId}`;
+    if (userId) whereCondition += ` AND a."user_id" = ${userId}`;
+    
     let query = `
-        SELECT 
-      TO_CHAR(date, 'Month-YYYY') AS month_year,
-      COUNT(*) AS total_count,
-      COUNT(CASE WHEN type = 'Leave' THEN 1 END) AS leave_count,
-      COUNT(CASE WHEN type = 'Working Day' THEN 1 END) AS working_day_count,
-      COUNT(CASE WHEN type = 'Additional Day' THEN 1 END) AS additional_day_count,
-      SUM(additional_hours) AS total_additional_hours,
-      MAX(date) AS max_date  
-    FROM attendance
-    WHERE company_id = ${companyId} AND deleted_at IS NULL
-      AND user_id = ${userId}
-    GROUP BY TO_CHAR(date, 'Month-YYYY')
-    ORDER BY max_date DESC
-    LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize};
+      SELECT 
+        TO_CHAR(a.date, 'Month-YYYY') AS month_year,           
+        SUM(CASE WHEN at.is_leave = TRUE THEN 1 ELSE 0 END) AS leave_count,  
+        SUM(CASE WHEN at.is_working_day = TRUE THEN 1 ELSE 0 END) AS working_day_count,  
+        SUM(CASE WHEN at.is_additional_day = TRUE THEN 1 ELSE 0 END) AS additional_day_count,  
+        SUM(a.additional_hours) AS total_additional_hours,    
+        MAX(a.date) AS max_date                                
+      FROM 
+        Attendance AS a
+      LEFT JOIN 
+        attendance_type AS at ON a.type = at.id
+      WHERE 
+        ${whereCondition} AND a.deleted_at IS NULL
+      GROUP BY 
+        TO_CHAR(a.date, 'Month-YYYY')                        
+      ORDER BY 
+        MAX(a.date) DESC                                       
+      LIMIT 
+        ${pageSize} OFFSET ${(page - 1) * pageSize};           
     `;
-
-    let queryDatas = await db.connection.query(query);
+    
+    // Execute the query
+    let queryDatas = await db.connection.query(query);    
     let queryDataList = queryDatas && queryDatas[0];
-
+  
     let ArryValue = [];
     let total_days_count = 0;
     let additional_day_and_leave_count_addition = 0;
     let working_and_additional_hours_addition = 0;
-
-    if (ArrayList.isArray(queryDataList)) {
+  
+    if (Array.isArray(queryDataList)) {
       for (let i = 0; i < queryDataList.length; i++) {
         const queryDataValue = queryDataList[i];
-
-        working_and_additional_hours_addition = Number.GetFloat(queryDataValue?.working_day_count ? queryDataValue?.working_day_count : 0) +  Number.GetFloat(DateTime.convertMinutesToHoursAndDivide(Number.Get(queryDataValue?.total_additional_hours), 8) ? DateTime.convertMinutesToHoursAndDivide(Number.Get(queryDataValue?.total_additional_hours), 8) : 0) || 0;
-
-        additional_day_and_leave_count_addition = Number.GetFloat(queryDataValue?.additional_day_count ? queryDataValue?.additional_day_count : 0)+ Number.GetFloat(queryDataValue?.leave_count ? queryDataValue?.leave_count : 0) || 0;
-
-        total_days_count = Number.GetFloat(working_and_additional_hours_addition) + Number.GetFloat(additional_day_and_leave_count_addition);
-
+  
+        working_and_additional_hours_addition = Number.GetFloat(queryDataValue?.working_day_count || 0) +  
+          Number.GetFloat(DateTime.convertMinutesToHoursAndDivide(Number.Get(queryDataValue?.total_additional_hours), 8) || 0);
+  
+        additional_day_and_leave_count_addition = Number.GetFloat(queryDataValue?.additional_day_count || 0) + 
+          Number.GetFloat(queryDataValue?.leave_count || 0);
+  
+        total_days_count = working_and_additional_hours_addition + additional_day_and_leave_count_addition;
+  
         ArryValue.push({
           ...queryDataValue,
-          total_additional_hours: Number.isNotNull(queryDataValue?.total_additional_hours) ? DateTime.HoursAndMinutes(Number.Get(queryDataValue?.total_additional_hours)) : 0,
+          total_additional_hours: Number.isNotNull(queryDataValue?.total_additional_hours) 
+            ? DateTime.HoursAndMinutes(Number.Get(queryDataValue?.total_additional_hours)) 
+            : 0,
           over_time_days: DateTime.convertMinutesToHoursAndDivide(Number.Get(queryDataValue?.total_additional_hours), 8),
           total_days_count: total_days_count
-        })
+        });
       }
     }
+  
     return {
       data: ArryValue,
       totalCount: queryDatas[1]?.rowCount
-    }
-
+    };
   },
+
+  
 
   monthRecord: async function (req, res, next) {
 
@@ -1312,7 +1343,7 @@ const attendanceService = (module.exports = {
       const manageOthers = await Permission.GetValueByName(
         Permission.ATTENDANCE_MANAGE_OTHERS,
         req.role_permission
-    );
+      );
 
 
       page = page ? parseInt(page, 10) : 1;
@@ -1387,36 +1418,37 @@ const attendanceService = (module.exports = {
     let currentTime = DateTime.getGmtHoursAndMinutes(new Date())
     if (DateTime.isValidDate(startTime)) {
       if (currentTime < startTimeValue) {
-    
-          if (additional_hours && additional_hours > 0) {
 
-            let type = await getSettingValue(Setting.ATTENDANCE_EARLY_CHECK_IN_BONUS_TYPE, companyId);
+        if (additional_hours && additional_hours > 0) {
 
-            if (Number.isNotNull(type)) {
+          let type = await getSettingValue(Setting.ATTENDANCE_EARLY_CHECK_IN_BONUS_TYPE, companyId);
 
-              const tagDetail = await Tag.findOne({
-                where: { id: type, company_id: companyId },
-              });
-              if (Number.isNotNull(tagDetail)) {
-                let default_amount = additional_hours * Number.GetFloat(tagDetail?.default_amount);
-                let createData = {
-                  user: user_id,
-                  type: type,
-                  amount: default_amount,
-                  company_id: companyId,
-                  notes: `CheckIn At: ${DateTime.getCurrentDateTimeByUserProfileTimezone(login, timeZone)} `
-                };
-                let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
-                return response
-              } else {
-                return null
-              }
+          if (Number.isNotNull(type)) {
+
+            const tagDetail = await Tag.findOne({
+              where: { id: type, company_id: companyId },
+            });
+            if (Number.isNotNull(tagDetail)) {
+              let default_amount = additional_hours * Number.GetFloat(tagDetail?.default_amount);
+              let createData = {
+                user: user_id,
+                type: type,
+                amount: default_amount,
+                company_id: companyId,
+                notes: `CheckIn At: ${DateTime.getCurrentDateTimeByUserProfileTimezone(login, timeZone)} `,
+                objectName: ObjectName.BONUS,
+              };
+              let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
+              return response
             } else {
               return null
             }
           } else {
             return null
           }
+        } else {
+          return null
+        }
       } else {
         return null
       }
@@ -1443,55 +1475,56 @@ const attendanceService = (module.exports = {
         ObjectName.ROLE
       );
 
-      if (Number.isNotNull(minimumStockEntryCount)) {
+       if (Number.isNotNull(minimumStockEntryCount)) {
 
-        let params={
-          company_id: companyId,
-          user_id: user_id,
-          date: date,
-          timeZone: timeZone,
-          store_id: store_id ,
-          shift_id: shift?.id,
-          manageOthers: false
-        }
-        let { stockEntryProduct } = await StockEntryProductService.getCount(params);
+      let params={
+        company_id: companyId,
+        user_id: user_id,
+        date: date,
+        timeZone: timeZone,
+        store_id: store_id,
+        shift_id: shift?.id,
+        manageOthers: false
+      }
+      let { stockEntryProduct } = await StockEntryProductService.getCount(params);
 
-        if (stockEntryProduct > Number.Get(minimumStockEntryCount)) {
-          let stockEntryExtraBonusType = await getSettingValue(Setting.STOCK_ENTRY_EXTRA_BONUS_TYPE, companyId);
+       if (stockEntryProduct > Number.Get(minimumStockEntryCount)) {
+      let stockEntryExtraBonusType = await getSettingValue(Setting.STOCK_ENTRY_EXTRA_BONUS_TYPE, companyId);
 
-          if (Number.isNotNull(stockEntryExtraBonusType)) {
+      if (Number.isNotNull(stockEntryExtraBonusType)) {
 
-            const tagDetail = await Tag.findOne({
-              where: { id: stockEntryExtraBonusType, company_id: companyId },
-            });
+        const tagDetail = await Tag.findOne({
+          where: { id: stockEntryExtraBonusType, company_id: companyId },
+        });
 
 
-            if (Number.isNotNull(tagDetail)) {
-              let extraStockEntryProductCount = stockEntryProduct - Number.Get(minimumStockEntryCount);
-             
-              let default_amount = extraStockEntryProductCount  * Number.GetFloat(tagDetail?.default_amount);
-              let createData = {
-                user: user_id,
-                type: stockEntryExtraBonusType,
-                amount: default_amount,
-                company_id: companyId,
-                notes: ` Date: ${DateTime.shortMonthDate(new Date(date))} \n Shift: ${shift?.name} \n Stock Entry Count: ${stockEntryProduct} \n Extra Stock Entry Count: ${extraStockEntryProductCount} `
-              };
-              let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
-              return {
-                bonusAmount: response?.amount,
-                stockEntryCount: stockEntryProduct,
-                extraStockEntryCount: extraStockEntryProductCount
-              }
-            }else{
-              return null
-            }
-          } else {
-            return null
+        if (Number.isNotNull(tagDetail)) {
+          let extraStockEntryProductCount = stockEntryProduct - Number.Get(minimumStockEntryCount);
+
+          let default_amount = extraStockEntryProductCount  * Number.GetFloat(tagDetail?.default_amount);
+          let createData = {
+            user: user_id,
+            type: stockEntryExtraBonusType,
+            amount: default_amount,
+            company_id: companyId,
+            notes: ` Date: ${DateTime.shortMonthDate(new Date(date))} \n Shift: ${shift?.name} \n Stock Entry Count: ${stockEntryProduct} \n Extra Stock Entry Count: ${extraStockEntryProductCount} `,
+            objectName: ObjectName.BONUS,
+          };
+          let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
+          return {
+            bonusAmount: response?.amount,
+            stockEntryCount: stockEntryProduct,
+            extraStockEntryCount: extraStockEntryProductCount
           }
-        }else{
+        } else {
           return null
         }
+      } else {
+        return null
+      }
+      }else{
+        return null
+      }
       }else{
         return null
       }
@@ -1532,7 +1565,8 @@ const attendanceService = (module.exports = {
               type: replenishmentExtraCountBonusType,
               amount: default_amount,
               company_id: companyId,
-              notes: ` Date: ${DateTime.shortMonthDate(new Date(date))} \n Shift: ${shift?.name} \n Replenishment Count: ${data?.totalProductCount} \n Extra Replenishment Count: ${extraReplenishmentCount} `
+              notes: ` Date: ${DateTime.shortMonthDate(new Date(date))} \n Shift: ${shift?.name} \n Replenishment Count: ${data?.totalProductCount} \n Extra Replenishment Count: ${extraReplenishmentCount} `,
+              objectName: ObjectName.BONUS,
             };
             let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
             return {
@@ -1554,8 +1588,8 @@ const attendanceService = (module.exports = {
     }
   },
 
-   //Early Check-In Bonus Add
-   addBonusForAdditionalHours: async function (user_id, additional_hours, endTime, roleId, timeZone, companyId) {
+  //Early Check-In Bonus Add
+  addBonusForAdditionalHours: async function (user_id, additional_hours, endTime, roleId, timeZone, companyId) {
 
     let endTimeValue = DateTime.addMinutesToTime(endTime ? endTime : "00:00")
     let currentTime = DateTime.getGmtHoursAndMinutes(new Date())
@@ -1584,7 +1618,8 @@ const attendanceService = (module.exports = {
                   type: type,
                   amount: default_amount,
                   company_id: companyId,
-                  notes: `CheckOut At: ${DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)} `
+                  notes: `CheckOut At: ${DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)} `,
+                  objectName: ObjectName.BONUS
                 };
                 let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
                 return response
@@ -1652,16 +1687,16 @@ const attendanceService = (module.exports = {
                 let locationName = await LocationService.getName(attendanceDetail?.store_id, companyId)
                 let shiftName = await ShiftService.getName(attendanceDetail?.shift_id, companyId)
                 let userDetail = await UserService.get(attendanceDetail?.user_id, companyId)
-               let summary = `Attendance - Early Checkout - ${DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)} - ${shiftName} - ${locationName} - ${String.concatName(userDetail?.name,userDetail?.last_name)}  `
-               let enquiryTicketParams = {
-                 req,
-                 company_id: companyId,
-                 summary,
-                 type: Setting.ATTENDANCE_EARLY_CHECK_OUT_ENQUIRY_TICKET_TYPE
-               }
-               await attendanceService.createEnquiryTicket(enquiryTicketParams)
+                let summary = `Attendance - Early Checkout - ${DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)} - ${shiftName} - ${locationName} - ${String.concatName(userDetail?.name,userDetail?.last_name)}  `
+                let enquiryTicketParams = {
+                  req,
+                  company_id: companyId,
+                  summary,
+                  type: Setting.ATTENDANCE_EARLY_CHECK_OUT_ENQUIRY_TICKET_TYPE
+                }
+                await attendanceService.createEnquiryTicket(enquiryTicketParams)
               }
-             }
+            }
             return {
               fineAmount: Currency.IndianFormat(response?.amount),
             }
@@ -1681,33 +1716,31 @@ const attendanceService = (module.exports = {
     }
   },
 
-  addBonusForLateCheckOut: async function (user_id, endTime, lateCheckOutHours,  timeZone, companyId) {
+  addBonusForLateCheckOut: async function (user_id, endTime, lateCheckOutHours, timeZone, companyId) {
     let endTimeValue = DateTime.addMinutesToTime(endTime ? endTime : "00:00")
     let currentTime = DateTime.getGmtHoursAndMinutes(new Date())
     if (DateTime.isValidDate(endTime)) {
-      if (endTimeValue < currentTime ) {
-          if (lateCheckOutHours && lateCheckOutHours > 0) {
-            let type = await getSettingValue(Setting.ATTENDANCE_LATE_CHECK_OUT_BONUS_TYPE, companyId);
-            if (Number.isNotNull(type)) {
+      if (endTimeValue < currentTime) {
+        if (lateCheckOutHours && lateCheckOutHours > 0) {
+          let type = await getSettingValue(Setting.ATTENDANCE_LATE_CHECK_OUT_BONUS_TYPE, companyId);
+          if (Number.isNotNull(type)) {
 
-              const tagDetail = await Tag.findOne({
-                where: { id: type, company_id: companyId },
-              });
-              if (Number.isNotNull(tagDetail)) {
-                let default_amount = lateCheckOutHours * Number.GetFloat(tagDetail?.default_amount);
-                let createData = {
-                  user: user_id,
-                  type: type,
-                  amount: default_amount,
-                  company_id: companyId,
-                  notes: `CheckOut At: ${DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)} `
-                };
-                let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
-                return {
-                  bonusAmount: Currency.IndianFormat(response?.amount),
-                 }
-              } else {
-                return null
+            const tagDetail = await Tag.findOne({
+              where: { id: type, company_id: companyId },
+            });
+            if (Number.isNotNull(tagDetail)) {
+              let default_amount = lateCheckOutHours * Number.GetFloat(tagDetail?.default_amount);
+              let createData = {
+                user: user_id,
+                type: type,
+                amount: default_amount,
+                company_id: companyId,
+                notes: `CheckOut At: ${DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)} `,
+                objectName: ObjectName.BONUS,
+              };
+              let response = await fineService.create({ body: createData, user: { id: user_id, company_id: companyId } }, null, null);
+              return {
+                bonusAmount: Currency.IndianFormat(response?.amount),
               }
             } else {
               return null
@@ -1715,7 +1748,10 @@ const attendanceService = (module.exports = {
           } else {
             return null
           }
-      
+        } else {
+          return null
+        }
+
       } else {
         return null
       }
@@ -1729,43 +1765,128 @@ const attendanceService = (module.exports = {
   createEnquiryTicket : async function (params)  {
     let { req, company_id, summary, type } = params;
     try {
-    let reporterId = Request.getUserId(req);
-    let defaultType = await getSettingValue(type, company_id);
-    let ticketTypeData = await ProjectTicketType.findOne({
-      where: { id: defaultType, company_id: company_id },
-      attributes: ["project_id", "id", "name"],
-      include: [
-        {
-          required: false,
-          model: StatusModel,
-          as: "statusDetail",
-          order: [["sort_order", "ASC"]]
-        },
-      ]
-    });
-  
-    req.body = {
-      projectId: ticketTypeData?.project_id,
-      summary: summary,
-      assignee_id: ticketTypeData?.statusDetail?.default_owner,
-      type_id: defaultType,
-      eta: new Date(),
-      ticket_date: new Date(),
-      reporter_id: reporterId
-    };
-    let data = await TicketService.create(req);
-  
-    if (data?.historyMessage && data?.historyMessage.length > 0) {
-      let message = data?.historyMessage.join();
-      await History.create(`Created with the following: ${message}`, req, ObjectName.TICKET, data?.ticketDetails?.id);
-    } else {
-      await History.create("Ticket Added", req, ObjectName.TICKET, data?.ticketDetails?.id);
-    }
-  
-    await TicketService.reindex(data?.ticketDetails?.id, company_id);
-        
-  } catch (error) {
+      let reporterId = Request.getUserId(req);
+      let defaultType = await getSettingValue(type, company_id);
+      let ticketTypeData = await ProjectTicketType.findOne({
+        where: { id: defaultType, company_id: company_id },
+        attributes: ["project_id", "id", "name"],
+        include: [
+          {
+            required: false,
+            model: StatusModel,
+            as: "statusDetail",
+            order: [["sort_order", "ASC"]]
+          },
+        ]
+      });
+
+      req.body = {
+        projectId: ticketTypeData?.project_id,
+        summary: summary,
+        assignee_id: ticketTypeData?.statusDetail?.default_owner,
+        type_id: defaultType,
+        due_date: new Date(),
+        ticket_date: new Date(),
+        reporter_id: reporterId
+      };
+      let data = await TicketService.create(req);
+
+      if (data?.historyMessage && data?.historyMessage.length > 0) {
+        let message = data?.historyMessage.join();
+        await History.create(`Created with the following: ${message}`, req, ObjectName.TICKET, data?.ticketDetails?.id);
+      } else {
+        await History.create("Ticket Added", req, ObjectName.TICKET, data?.ticketDetails?.id);
+      }
+
+      await TicketService.reindex(data?.ticketDetails?.id, company_id);
+
+    } catch (error) {
       console.log(error);
-  }
+    }
+  },
+
+  AddFineForCheckoutMissing: async function (params) {
+    let { company_id, startDate, endDate } = params;
+
+    if (!company_id) {
+      throw { message: "CompanyId is Required" }
+    }
+    
+    let checkoutMissingFineType = await getSettingValue(Setting.ATTENDANCE_CHECKOUT_MISSING_FINE_TYPE, company_id);
+    let where = {};
+
+    where.company_id = company_id
+
+    where.login = {
+      [Op.ne]: null
+    }
+    where.logout = {
+      [Op.eq]: null
+    }
+
+    if (startDate && endDate) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+      };
+    }
+
+    let include = [
+      {
+        required: false,
+        model: Shift,
+        as: "shift",
+      },
+      {
+        required: false,
+        model: Location,
+        as: "location",
+      },
+    ]
+    const tagDetail = await Tag.findOne({
+      where: { id: checkoutMissingFineType, company_id: company_id },
+    });
+
+    const isAlreadyFineRecordExits = async (params) => {
+      let { company_id, object_id, object_name } = params;
+      let where = {}
+      where.company_id = company_id
+      where.object_id = object_id
+      where.object_name = object_name
+
+      let fineDetail = await FineBonus.findOne({ where: where });
+      return fineDetail;
+    }
+
+    if (Number.isNotNull(checkoutMissingFineType)) {
+      let attendanceList = await Attendance.findAll({ where: where, include })
+
+      if (ArrayList.isArray(attendanceList)) {
+        for (let i = 0; i < attendanceList.length; i++) {
+          const attendanceDetail = attendanceList[i];
+
+          let isRecordAlreadyExits = await isAlreadyFineRecordExits({ company_id, object_name: ObjectName.ATTENDANCE, object_id: attendanceDetail?.id });
+          if (!isRecordAlreadyExits) {
+            if (Number.isNotNull(tagDetail)) {
+              let default_amount = Number.GetFloat(tagDetail?.default_amount);
+              let createData = {
+                user: attendanceDetail?.user_id,
+                type: checkoutMissingFineType,
+                amount: default_amount,
+                company_id: company_id,
+                object_name: ObjectName.ATTENDANCE,
+                object_id: attendanceDetail?.id,
+                date: attendanceDetail?.date,
+                notes: ` Date: ${DateTime.shortMonthDate(new Date(attendanceDetail?.date))} \n Shift: ${attendanceDetail?.shift?.name} \n Location: ${attendanceDetail?.location?.name} \n Fine Amount: ${Currency.IndianFormat(default_amount)} `
+              };
+              await fineService.create({ body: createData, user: { id: attendanceDetail?.user_id, company_id: company_id } }, null, null);
+            }
+          }
+        }
+
+      }
+    }
   }
 });

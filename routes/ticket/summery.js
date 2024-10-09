@@ -97,7 +97,7 @@ const search = async (req, res, next) => {
       ticketWhere.status_group_id = group;
     }
     if (date) {
-      ticketWhere.eta = {
+      ticketWhere.due_date = {
         [Op.and]: {
           ...(isPendingCount ? {} : { [Op.gte]: DateTime.getSQlFormattedDate(date) }),
           ...(isPendingCount ? { [Op.lte]: DateTime.subtract(1) } : { [Op.lte]: DateTime.getSQlFormattedDate(date) }),
@@ -124,7 +124,7 @@ const search = async (req, res, next) => {
       ticketWhere.status_group_id = group;
     }
     if (date ) {
-      ticketWhere.eta = {
+      ticketWhere.due_date = {
         [Op.and]: {
           ...(isPendingCount ? {} : { [Op.gte]: DateTime.getSQlFormattedDate(date) }),
           ...(isPendingCount ? { [Op.lte]: DateTime.subtract(1) } : { [Op.lte]: DateTime.getSQlFormattedDate(date) }),

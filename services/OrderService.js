@@ -57,7 +57,7 @@ const ShiftService = require("./ShiftService");
 const AccountService = require("./AccountService");
 const ObjectHelper = require("../helpers/ObjectHelper");
 const OrderTypeService = require("./OrderTypeService");
-
+const config = require("../config/config")
 
 const ArrayList = require("../lib/ArrayList");
 const String = require("../lib/string");
@@ -156,7 +156,7 @@ const createOrder = async (data) => {
       total_amount: data.total_amount,
       store_id: data.storeId,
       Order_Id: data.OrderId,
-      owner: data?.sales_executive_user_id?data.sales_executive_user_id:data.owner,
+      owner: data?.sales_executive_user_id ? data.sales_executive_user_id : data.owner,
     };
 
     return await orderModel.create(createData);
@@ -182,7 +182,6 @@ const searchOrder = async (params, req) => {
       pagination,
       status,
       customer_account,
-      type,
       location,
       user,
       shift,
@@ -194,7 +193,9 @@ const searchOrder = async (params, req) => {
       showTotalAmount,
       orderDate,
       currentShift,
-      currentLocation
+      currentLocation,
+      isStoreOrder,
+      isDeliveryOrder
     } = params;
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
@@ -209,6 +210,20 @@ const searchOrder = async (params, req) => {
       throw { message: "Invalid page size" };
     }
 
+    let type = params && params?.type ? params?.type:null
+
+    let orderTypeList
+
+    
+    if(isStoreOrder == OrderTypeGroup.ENABLE_STORE_ORDER){
+      orderTypeList = await OrderTypeService.list({},companyId,{allow_store_order:isStoreOrder})
+      type = orderTypeList && orderTypeList.length >0 ? orderTypeList.map((value=>value.id)):[]
+    }
+    
+    if(isDeliveryOrder == OrderTypeGroup.ENABLE_DELIVERY_ORDER){
+      orderTypeList = await OrderTypeService.list({},companyId,{allow_delivery:isDeliveryOrder})
+      type = orderTypeList && orderTypeList.length >0 ? orderTypeList.map((value=>value.id)):[]
+    }
     // Sortable Fields
     const validOrder = ["ASC", "DESC"];
     const sortableFields = {
@@ -229,6 +244,7 @@ const searchOrder = async (params, req) => {
       payment_type: "payment_type",
       cash_amount: "cash_amount",
       upi_amount: "upi_amount",
+      customer_account: "customer_account",
     };
 
     let timeZone = Request.getTimeZone(req);
@@ -267,11 +283,8 @@ const searchOrder = async (params, req) => {
       where.id = orderId;
     }
 
-    if (type) {
-      where.type = type
-    } else {
-      let OrderTypeId = await OrderTypeService.getOrderTypeId(companyId, OrderTypeGroup.STORE)
-      where.type = OrderTypeId[0]
+    if(Number.isNotNull(type)){
+      where.type =type
     }
 
     if (status) {
@@ -283,7 +296,6 @@ const searchOrder = async (params, req) => {
     }
     if (!hasOrderManageOthersPermission) {
       let userId = req && req.user && req.user.id;
-      if (type == Order.TYPE_DELIVERY) {
         if (userId) {
           if (customer_account) {
             where.customer_account = userId
@@ -291,18 +303,11 @@ const searchOrder = async (params, req) => {
           } else {
             where.owner = userId;
 
-          }
-
         }
-
-      } else {
-        if (userId) {
-          where.owner = userId;
-        }
-      }
+      } 
     }
 
-    let customDate = DateTime.getCustomDateTime(orderDate, timeZone)
+    let date = DateTime.getCustomDateTime(orderDate || req.query.date, timeZone);
 
     // Apply filters if there is one
     if (Number.isNotNull(location)) {
@@ -312,17 +317,19 @@ const searchOrder = async (params, req) => {
     if (Number.isNotNull(shift)) {
       where.shift = shift
     }
-    if (Number.isNotNull(orderDate)) {
+    if (Number.isNotNull(orderDate || req?.query?.date)) {
       if (type == Order.TYPE_STORE && !hasOrderManageOthersPermission) {
 
         where.shift = currentShift;
       }
-      where.date = {
-        [Op.and]: {
-          [Op.gte]: customDate?.startDate,
-          [Op.lte]: customDate?.endDate,
-        },
-      };
+      if (date && Number.isNotNull(date)) {
+        where.date = {
+          [Op.and]: {
+            [Op.gte]: date?.startDate,
+            [Op.lte]: date?.endDate,
+          },
+        };
+      }
     }
 
     if (user) {
@@ -333,7 +340,7 @@ const searchOrder = async (params, req) => {
       where.shift = shift;
     }
 
-    Where.id(where,"owner",params?.owner)
+    Where.id(where, "owner", params?.owner)
     if (startDate && !endDate) {
       where.date = {
         [Op.and]: {
@@ -362,7 +369,7 @@ const searchOrder = async (params, req) => {
 
     whereLocation.company_id = companyId
 
-    let statusDetail = await statusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_DRAFT, companyId);
+    let statusDetail = await statusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_DRAFT, companyId,{object_id:type});
 
     if (statusDetail && statusDetail?.id) {
       where[Op.or] = [
@@ -398,6 +405,7 @@ const searchOrder = async (params, req) => {
           },
         ];
       }
+
       if (typeof parseFloat(searchTerm) == "number" && !isNaN(parseFloat(searchTerm))) {
         where[Op.or] = [
           {
@@ -413,12 +421,16 @@ const searchOrder = async (params, req) => {
         ];
       }
     }
+
     let order = []
+
     if (sort === "locationName") {
       order.push([[{ model: Location, as: 'location' }, 'name', sortDir]])
     }
     else if (sort === "status") {
       order.push([[{ model: statusModel, as: 'statusDetail' }, 'name', sortDir]])
+    } else if (sort === "customer_account") {
+      order.push([{ model: account, as: 'accountDetail' }, 'name', sortDir])
     }
     else {
       order.push([[sortableFields[sortParam], sortDirParam]])
@@ -442,7 +454,7 @@ const searchOrder = async (params, req) => {
       {
         model: User,
         as: "ownerDetail",
-        attributes: ["name", "last_name", "media_url"]
+        attributes: ["name", "last_name", "media_url","id"]
       },
       {
         model: User,
@@ -451,10 +463,19 @@ const searchOrder = async (params, req) => {
 
       },
       {
+        model: account,
+        as: "accountDetail",
+        attributes: ["name"],
+      },
+      {
         required: false,
         model: statusModel,
         as: "statusDetail",
         attributes: ["name", "color_code", "id", "allow_edit", "group"]
+      },
+      {
+        model: OrderType,
+        as: "orderTypeDetail",
       },
     ];
     const query = {
@@ -478,8 +499,8 @@ const searchOrder = async (params, req) => {
 
     let filterParams = {
       companyId: companyId,
-      startDate: customDate?.startDate ? customDate?.startDate : start_date ? DateTime.toGMT(start_date, timeZone) : "",
-      endDate: customDate?.endDate ? customDate?.endDate : end_date ? DateTime.toGMT(end_date, timeZone) : "",
+      startDate: (date?.startDate && date) ? date?.startDate : start_date ? DateTime.toGMT(start_date, timeZone) : "",
+      endDate: (date?.endDate && date) ? date?.endDate : end_date ? DateTime.toGMT(end_date, timeZone) : "",
       location: location,
       status: status,
       shift: where?.shift,
@@ -506,14 +527,12 @@ const searchOrder = async (params, req) => {
     // Get Order image list and count
     const orders = await orderModel.findAndCountAll(query);
 
-
     // Return product image is null
     if (orders.count === 0) {
       return [];
     }
     let accountArray = [];
 
-    let userArray = [];
 
 
     let customerDetails = await account.findAll({
@@ -528,21 +547,10 @@ const searchOrder = async (params, req) => {
     }
 
 
-    let userDetails = await User.findAll({
-      where: { company_id: companyId },
-      attributes: ["last_name", "name", "media_url", "id"],
-    });
-
-    if (userDetails && userDetails.length > 0) {
-      for (let i = 0; i < userDetails.length; i++) {
-        userArray.push({ name: userDetails[i].name, last_name: userDetails[i].last_name, id: userDetails[i].id, media_url: userDetails[i].media_url });
-      }
-    }
     const orderData = [];
     const ordersRows = orders.rows; // Store the rows in a separate variable for better performance
 
     let customerData = ""
-    let ownerData=""
 
     for (let i = 0; i < ordersRows.length; i++) {
       let ownerName = "";
@@ -551,7 +559,6 @@ const searchOrder = async (params, req) => {
       }
       const orderDetails = { ...ordersRows[i].get() };
       customerData = accountArray.find(value => value.id == orderDetails.customer_account)
-      ownerData = userArray.find(value => value.id == orderDetails?.owner)
       orderDetails.createdAt = ordersRows[i].createdAt, dateTime.formats.shortDateAndTime
       orderDetails.updatedAt = ordersRows[i].updatedAt, dateTime.formats.shortDateAndTime
       orderDetails.date = DateTime.getDateTimeByUserProfileTimezone(orderDetails.date, timeZone);
@@ -576,12 +583,16 @@ const searchOrder = async (params, req) => {
       orderDetails.total_sgst_amount = orderDetails.total_sgst_amount
       orderDetails.cash_amount = orderDetails.cash_amount
       orderDetails.upi_amount = orderDetails.upi_amount
-      orderDetails.type = orderDetails.type == null ? "" : orderDetails.type == Order.TYPE_STORE ? Order.TYPE_STORE_TEXT : orderDetails.type == Order.TYPE_ONLINE ? Order.TYPE_ONLINE_TEXT : orderDetails.type == Order.TYPE_DELIVERY ? Order.TYPE_DELIVERY_TEXT : ""
+      orderDetails.type =ordersRows[i].orderTypeDetail && ordersRows[i].orderTypeDetail,
+      orderDetails.allow_store_order = ordersRows[i].orderTypeDetail && ordersRows[i].orderTypeDetail?.allow_store_order,
+      orderDetails.allow_delivery = ordersRows[i].orderTypeDetail && ordersRows[i].orderTypeDetail?.allow_delivery,
+      orderDetails.allow_customer_selection = ordersRows[i].orderTypeDetail && ordersRows[i].orderTypeDetail?.show_customer_selection,
       orderDetails.upi_payment_verified = orderDetails?.upi_payment_verified,
-      orderDetails.owner = orderDetails.owner;
-      orderDetails.owner_firstName = ownerData && ownerData?.name ?  ownerData?.name: "";
-      orderDetails.owner_lastName = ownerData && ownerData?.last_name ? ownerData?.last_name :"";
-      orderDetails.owner_media_url = ownerData?.media_url ? ownerData?.media_url :"";
+        orderDetails.owner = orderDetails.owner;
+      orderDetails.owner_firstName = ordersRows[i].ownerDetail && ordersRows[i].ownerDetail?.name ? ordersRows[i].ownerDetail?.name : "";
+      orderDetails.owner_lastName = ordersRows[i].ownerDetail && ordersRows[i].ownerDetail?.last_name ? ordersRows[i].ownerDetail?.last_name : "";
+      orderDetails.owner_media_url = ordersRows[i].ownerDetail?.media_url ? ordersRows[i].ownerDetail?.media_url : "";
+      orderDetails.customer_account = orderDetails?.accountDetail?.name;
       orderData.push(orderDetails);
     };
 
@@ -593,7 +604,6 @@ const searchOrder = async (params, req) => {
       lastReCord.isLastRecord = true;
       orderData.push(lastReCord);
     }
-
 
     let responseData = {
       totalCount: orders.count,
@@ -675,7 +685,7 @@ const getOrdersById = async (orderId, company_id) => {
           required: false,
           model: OrderType,
           as: "orderTypeDetail",
-          attributes:["name","show_customer_selection"]
+          attributes: ["name", "show_customer_selection"]
         },
       ],
     });
@@ -1127,6 +1137,14 @@ const update = async (req, res, next) => {
       }
     }
 
+    if (Number.isNotNull(data?.type)) {
+      if (Number.Get(data.type) !== Number.Get(getOrderDetail?.type)) {
+        updateData.type = data.type
+        let response =  await OrderTypeService.get(data?.type, companyId);
+        historyMessage.push(`Type Changed to ${response?.name}\n`);
+      }
+    }
+
     //validaet total amount exsit or not
     if (data?.total_amount >= 0) {
       updateData.total_amount = data.total_amount
@@ -1170,6 +1188,15 @@ const update = async (req, res, next) => {
           let message = historyMessage.join();
           History.create(`${message}`, req, ObjectName.ORDER, orderId);
         }
+        if(Number.isNotNull(data?.status))
+      {
+        const status = await statusService.getData(data?.status,companyId);
+      if(status && status?.notify_to_owner == Status.NOTIFY_TO_OWNER_ENABLED){
+
+      orderDetail.timeZone = Request.getTimeZone(req)
+      await sendOrderSlackNotification(getOrderDetail,status?.name)
+    }}
+    
       });
     } else {
       res.json(BAD_REQUEST, {
@@ -1528,8 +1555,8 @@ const updateStatus = async (req, res, next) => {
     });
     res.on("finish", async () => {
       if(statusData && statusData?.notify_to_owner == Status.NOTIFY_TO_OWNER_ENABLED){
-
-        await sendOrderSlackNotification(orderDetails?.id, orderDetails?.owner, orderDetails?.customer_account, companyId, orderDetails?.type)
+       orderDetails.timeZone = Request.getTimeZone(req)
+        await sendOrderSlackNotification(orderDetails,statusData?.name)
       }
       //create system log for sale updation
       History.create(
@@ -1597,7 +1624,7 @@ const getBySelectedIds = async (req, res) => {
 
 const bulkUpdate = async (req, res, next) => {
   try {
-    const { id, date, location, shift, owner, paymentType } = req.params;
+    const { id, date, location, shift, owner, paymentType,type } = req.params;
 
     const { orderIds } = req.body;
 
@@ -1633,6 +1660,10 @@ const bulkUpdate = async (req, res, next) => {
         }
         if (owner) {
           updateData.owner = owner
+
+        }
+        if (type) {
+          updateData.type = type
 
         }
         if (paymentType) {
@@ -1692,6 +1723,14 @@ const completeOrder = async (orderId, body, companyId, userId) => {
 
     const orderCompletedStatus = await statusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_COMPLETED, companyId, { object_id: orderDetail?.type });
 
+    
+    let req = { user: {} }; 
+    
+    req.user.company_id = companyId;
+    
+    req.user.id = userId;
+    
+    History.create(`order complete status ${orderCompletedStatus?.name} orderType : ${orderDetail?.type}`, req, ObjectName.ORDER, orderId);
 
     let historyMessage = new Array()
 
@@ -1760,12 +1799,8 @@ const completeOrder = async (orderId, body, companyId, userId) => {
 
     await orderProductService.updateStatus(orderId, companyId, orderCompletedStatus.id)
 
-    if (historyMessage && historyMessage.length > 0) {
-      let message = historyMessage.join();
-      History.create(`${message}`, { user: { id: userId, company_id: companyId } }, ObjectName.ORDER, orderId);
-    }
-
-
+    
+    return {orderDetail,orderCompletedStatus,historyMessage}
   } catch (err) {
     console.log(err);
     throw { message: err.message }
@@ -1920,120 +1955,141 @@ const bulkOrder = async (orderObject, orderProductList, userId, companyId) => {
   }
 }
 
-const sendOrderSlackNotification = async (orderId, ownerId, customerId, companyId,type) => {
-  let params = {
-    object_id: customerId,
-    company_id: companyId,
-    object_name: ObjectName.CUSTOMER,
-  };
-  let addressDetail = await AddressService.get(params);
-  let OrderProductList = await orderProduct.findAll({
-    include: [
-      {
-        required: true,
-        model: productIndex,
-        as: "productIndex",
+const sendOrderSlackNotification = async (orderDetail, status) => {
+  try {
+    let params = {
+      object_id: orderDetail?.customer_account,
+      company_id: orderDetail?.company_id,
+      object_name: ObjectName.CUSTOMER,
+    };
+
+    let addressDetail = await AddressService.get(params);
+    let OrderProductList = await orderProduct.findAll({
+      include: [
+        {
+          required: true,
+          model: productIndex,
+          as: "productIndex",
+        },
+      ],
+      where: {
+        order_id: orderDetail?.id,
+        company_id: orderDetail?.company_id,
       },
-    ],
-    where: {
-      order_id: orderId,
-      company_id: companyId,
-    },
-  });
+    });
 
-  let blocks = [];
+    let blocks = [];
 
-  if (OrderProductList && OrderProductList.length > 0) {
-    for (let i = 0; i < (OrderProductList.length > 48 ? 48 : OrderProductList.length); i++) {
-      const { productIndex, quantity } = OrderProductList[i];
+    if (OrderProductList && OrderProductList.length > 0) {
+      for (let i = 0; i < Math.min(OrderProductList.length, 48); i++) {
+        const { productIndex, quantity } = OrderProductList[i];
 
-      blocks.push({
-        type: "section",
-        block_id: `block${i}`,
-        text: {
-          type: "mrkdwn",
-          text: `*${productIndex?.brand_name}*\n${productIndex?.product_name}\n${Currency.GetFormattedCurrency(
-            productIndex?.sale_price
-          )}\n${quantity}`,
-        },
-        accessory: {
-          type: "image",
-          image_url: `${productIndex?.featured_media_url ? productIndex?.featured_media_url : "noImage.jpg"}`,
-          alt_text: "images",
-        },
-      });
+        blocks.push({
+          type: "section",
+          block_id: `block${i}`,
+          text: {
+            type: "mrkdwn",
+            text: `${i === 0 ? "*Product Details:*" : ""}\n${productIndex?.brand_name} - ${productIndex?.product_name} - Quantity: ${quantity}\n${Currency.GetFormattedCurrency(productIndex?.sale_price)}`,
+          },
+          accessory: {
+            type: "image",
+            image_url: `${productIndex?.featured_media_url ? productIndex?.featured_media_url : "noImage.jpg"}`,
+            alt_text: "Product Image",
+          },
+        });
+    
+        // Add a divider between product blocks
+        if (i < Math.min(OrderProductList.length, 48) - 1) {
+          blocks.push({ type: "divider" });
+        }
+      }
+    }    
+
+    let customerDetail = null;
+    if (addressDetail) {
+      customerDetail = `*Customer Details:*\n${addressDetail?.name ? addressDetail?.name : ""
+        }${addressDetail?.name && addressDetail?.phone_number ? "," : ""}${addressDetail?.phone_number ? "\n" + addressDetail?.phone_number : ""
+        }${(addressDetail?.name || addressDetail?.phone_number) && addressDetail?.address1 ? "," : ""}${addressDetail?.address1 ? "\n" + addressDetail?.address1 : ""
+        }${addressDetail?.address1 && addressDetail?.address2 ? "," : ""}${addressDetail?.address2 ? "\n" + addressDetail?.address2 : ""
+        }`;
     }
+
+    const getSlackId = await UserService.getSlack(orderDetail?.owner, orderDetail?.company_id);
+
+    const orderDetailRedirectingUrl = `${config.defaultPortalUrl}/order/${orderDetail?.id}`;
+
+    let param = {
+      companyId: orderDetail?.company_id,
+      slackUserId: getSlackId?.slack_id,
+      latitude: addressDetail?.latitude,
+      longitude: addressDetail?.longitude,
+      headerText: orderDetail?.type === Order.TYPE_DELIVERY ? "Delivery Order" : "Store Order",
+      orderDetail: `*Order Number:* <${orderDetailRedirectingUrl}|*${orderDetail?.order_number}*> , ${DateTime.getDateTimeByUserProfileTimezone(orderDetail.date, orderDetail?.timeZone)}\n*Order Type:* ${orderDetail?.type === Order.TYPE_DELIVERY ? "Delivery" : "Store"}\n*Status:* ${status}`,
+    };
+
+    // Send the order message to Slack
+    SlackService.sendOrderMessageToUser(param, [...blocks], customerDetail);
+  } catch (err) {
+    console.log(err);
   }
-
-  let customerDetail = null
-  if(addressDetail){
-    customerDetail = `*Customer:*\n*Name:* ${addressDetail?.name ? addressDetail?.name : ""}\n*Phone Number:* ${addressDetail?.phone_number ? addressDetail?.phone_number : ""}\n*Address1:* ${addressDetail?.address1 ? addressDetail?.address1 : ""}\n*Address2:* ${addressDetail?.address2 ? addressDetail?.address2 : ""}`;
-  }
-
-  const getSlackId = await UserService.getSlack(ownerId, companyId);
-
-  let param = {
-    companyId: companyId,
-    slackUserId: getSlackId && getSlackId?.slack_id,
-    latitude: addressDetail?.latitude,
-    longitude: addressDetail?.longitude,
-    headerText:type == Order.TYPE_DELIVERY ?"Delivery Order":"Store Order"
-  };
-  SlackService.sendOrderMessageToUser(param, blocks, customerDetail);
 };
 
 const getCashAndUpiTotalAmount = async (params) => {
-  try{
-  let whereClause = '';
+  try {
+    let whereClause = '';
 
-  if (params?.startDate) {
-    whereClause += ` AND "order"."date" >= '${params?.startDate}'`;
-  }
+    if (params?.startDate) {
+      whereClause += ` AND "order"."date" >= '${params?.startDate}'`;
+    }
 
-  if (params?.endDate) {
-    whereClause += ` AND "order"."date" <= '${params?.endDate}'`;
-  }
+    if (params?.endDate) {
+      whereClause += ` AND "order"."date" <= '${params?.endDate}'`;
+    }
 
-  if (params?.location) {
-    whereClause += ` AND "order"."store_id" = ${params?.location}`;
-  }
+    if (params?.location) {
+      whereClause += ` AND "order"."store_id" = ${params?.location}`;
+    }
 
-  if (Number.isNotNull(params?.status)) {
+    if (Number.isNotNull(params?.status)) {
 
-    whereClause += ` AND "order"."status" = ${params?.status}`;
-  }
+      whereClause += ` AND "order"."status" = ${params?.status}`;
+    }
 
-  if (params?.shift) {
-    whereClause += ` AND "order"."shift" = ${params?.shift}`;
-  }
+    if (params?.shift) {
+      whereClause += ` AND "order"."shift" = ${params?.shift}`;
+    }
 
-  if (params?.paymentType) {
-    whereClause += ` AND "order"."payment_type" = ${params?.paymentType}`;
-  }
+    if (params?.paymentType) {
+      whereClause += ` AND "order"."payment_type" = ${params?.paymentType}`;
+    }
 
-  if (params?.type) {
-    whereClause += ` AND "order"."type" = ${params?.type}`;
-  }
+    if (params?.type) {
+      if (Array.isArray(params.type) && params.type.length > 0) {
+        // If it's a non-empty array, use the IN clause
+        whereClause += ` AND "order"."type" IN (${params.type.join(',')})`;
+      } else if (typeof params.type === 'number' || typeof params.type === 'string') {
+        // If it's a single value (number or string), treat it as a single item
+        whereClause += ` AND "order"."type" = ${params.type}`;
+      }
+    }
+    if (params?.user) {
+      whereClause += ` AND "order"."owner" = ${params?.user}`;
+    }
 
-  if (params?.user) {
-    whereClause += ` AND "order"."owner" = ${params?.user}`;
-  }
-  
-  if (params?.searchTerm && isNaN(params?.searchTerm)) {
-    whereClause += ` AND ("store"."name" ILIKE '%${params?.searchTerm}%' OR "order"."order_number" ILIKE '%${params?.searchTerm}%')`;
-  } else if (params?.searchTerm && !isNaN(params?.searchTerm)) {
-    whereClause += ` AND "order"."order_number" = '${params?.searchTerm}'`;
-  }
+    if (params?.searchTerm && isNaN(params?.searchTerm)) {
+      whereClause += ` AND ("store"."name" ILIKE '%${params?.searchTerm}%' OR "order"."order_number" ILIKE '%${params?.searchTerm}%')`;
+    } else if (params?.searchTerm && !isNaN(params?.searchTerm)) {
+      whereClause += ` AND "order"."order_number" = '${params?.searchTerm}'`;
+    }
 
-  let OrderTypeId = await OrderTypeService.getOrderTypeId(params?.companyId, OrderTypeGroup.STORE)
 
-  let draftOrderStatus = await statusService.getAllStatusByGroupId(ObjectName.ORDER_TYPE, Status.GROUP_DRAFT, params?.companyId, null, { object_id: params && params?.type ? params?.type : OrderTypeId[0] })
+    let draftOrderStatus = await statusService.getAllStatusByGroupId(ObjectName.ORDER_TYPE, Status.GROUP_DRAFT, params?.companyId, null, { object_id: params && params?.type ? params?.type : null })
 
-  let draftOrderStatusIds = Array.isArray(draftOrderStatus) && draftOrderStatus.length > 0
-    ? draftOrderStatus.map((data) => data?.id)
-    : [];
+    let draftOrderStatusIds = Array.isArray(draftOrderStatus) && draftOrderStatus.length > 0
+      ? draftOrderStatus.map((data) => data?.id)
+      : [];
 
-  const rawQuery = `
+    const rawQuery = `
       SELECT COALESCE(SUM("order"."total_amount"), 0) AS "totalAmount",
              COALESCE(SUM("order"."cash_amount"), 0) AS "totalCashAmount",
              COALESCE(SUM("order"."upi_amount"), 0) AS "totalUpiAmount",
@@ -2051,24 +2107,26 @@ const getCashAndUpiTotalAmount = async (params) => {
       ${whereClause}
       ;`;
 
-  const totalAmountResult = await db.connection.query(rawQuery, {
-    type: QueryTypes.SELECT,
-  });
+    const totalAmountResult = await db.connection.query(rawQuery, {
+      type: QueryTypes.SELECT,
+    });
 
-  return {
-    totalAmount: totalAmountResult && totalAmountResult[0]?.totalAmount,
-    totalCashAmount: totalAmountResult && totalAmountResult[0]?.totalCashAmount,
-    totalUpiAmount: totalAmountResult && totalAmountResult[0]?.totalUpiAmount,
-    totalDraftAmount: totalAmountResult && totalAmountResult[0]?.totalDraftAmount,
-  };
-}catch(err){
-  console.log(err);
-}
+    return {
+      totalAmount: totalAmountResult && totalAmountResult[0]?.totalAmount,
+      totalCashAmount: totalAmountResult && totalAmountResult[0]?.totalCashAmount,
+      totalUpiAmount: totalAmountResult && totalAmountResult[0]?.totalUpiAmount,
+      totalDraftAmount: totalAmountResult && totalAmountResult[0]?.totalDraftAmount,
+    };
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 const cancel = async (req, res, next) => {
 
   let orderId = req && req.params && req.params.id;
+
+  let reason = req.body.notes
 
   if (!orderId) {
     return res.json(Response.BAD_REQUEST, { message: "Order Id Required" })
@@ -2078,6 +2136,12 @@ const cancel = async (req, res, next) => {
 
   if (!companyId) {
     return res.json(Response.BAD_REQUEST, { message: "company Id Required" })
+  }
+
+  let reasonDetails = await orderModel.findOne({where : {id:orderId , company_id: companyId, reason: { [Op.eq]: null }}})
+
+  if (!reason && reasonDetails) {
+    return res.json(Response.BAD_REQUEST, { message: "Enter The Reason" });
   }
 
   const cancelledOrderStatusId = await statusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_CANCELLED, companyId);
@@ -2090,7 +2154,8 @@ const cancel = async (req, res, next) => {
 
   let updateData = {
     cancelled_at: new Date(),
-    status: cancelledOrderStatusId?.id
+    status: cancelledOrderStatusId?.id,
+    reason:req?.body?.notes
   }
 
   let orderResponse = await orderService.update(updateData, {

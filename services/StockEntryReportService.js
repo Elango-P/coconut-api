@@ -61,14 +61,15 @@ class StockEntryReportService {
   static async search(req, res) {
     try {
       const params = req.query;
-      let { page, pageSize, search, sort, sortDir, pagination, date, shift, location, user, startDate, endDate, role } =
-      params;
+      let { page, pageSize, search, sort, sortDir, shift, location, user, startDate, endDate, role } =
+        params;
 
-   
+
 
       // get company Id from request
       const companyId = Request.GetCompanyId(req);
       let timeZone = Request.getTimeZone(req);
+      let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
       let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
       let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
 
@@ -93,6 +94,7 @@ class StockEntryReportService {
         id: "id",
         date: "date",
         name: "name",
+        shift: "shift",
         stock_entry_number: "stock_entry_number",
         location: "location",
         createdAt: "createdAt",
@@ -146,7 +148,16 @@ class StockEntryReportService {
           },
         };
       }
-      
+
+      if (date && Number.isNotNull(req?.query?.date)) {
+        attendanceWhere.date = {
+          [Op.and]: {
+            [Op.gte]: date?.startDate,
+            [Op.lte]: date?.endDate,
+          },
+        };
+      }
+
       if (Number.isNotNull(user)) {
         attendanceWhere.user_id = user;
       }
@@ -169,8 +180,12 @@ class StockEntryReportService {
         order.push([[{ model: User, as: "user" }, "name", sortDir]]);
       }
 
-     if (sort === "location") {
+      if (sort === "location") {
         order.push([[{ model: LocationModel, as: "location" }, "name", sortDir]]);
+      }
+
+      if (sort === "shift") {
+        order.push([[{ model: Shift, as: "shift" }, "name", sortDir]]);
       }
 
       const searchTerm = search ? search.trim() : null;
@@ -207,8 +222,8 @@ class StockEntryReportService {
       let allowedUserIds = [];
       if (allowedRoleIds && allowedRoleIds.length > 0) {
         let userData = await User.findAll({
-          where: { 
-            role: { [Op.in]: allowedRoleIds }, 
+          where: {
+            role: { [Op.in]: allowedRoleIds },
             company_id: companyId,
             ...userWhere
           }
@@ -272,7 +287,7 @@ class StockEntryReportService {
           "date",
           [Sequelize.literal(`CASE WHEN COUNT(*) > 1 THEN 1 ELSE COUNT(*) END`), "count"],
         ],
-        group: ["store_id", "user_id", "user.id", "location.id", "date","shift.id"],
+        group: ["store_id", "user_id", "user.id", "location.id", "date", "shift.id"],
         raw: true,
       };
 
@@ -304,7 +319,7 @@ class StockEntryReportService {
       if (startDate && !endDate) {
         where.createdAt = {
           [Op.and]: {
-            [Op.gte]: DateTime.toGMT(start_date,timeZone),
+            [Op.gte]: DateTime.toGMT(start_date, timeZone),
           },
         };
       }
@@ -312,7 +327,7 @@ class StockEntryReportService {
       if (endDate && !startDate) {
         where.createdAt = {
           [Op.and]: {
-            [Op.lte]: DateTime.toGMT(end_date,timeZone),
+            [Op.lte]: DateTime.toGMT(end_date, timeZone),
           },
         };
       }
@@ -320,11 +335,21 @@ class StockEntryReportService {
       if (startDate && endDate) {
         where.createdAt = {
           [Op.and]: {
-            [Op.gte]: DateTime.toGMT(start_date,timeZone),
-            [Op.lte]: DateTime.toGMT(end_date,timeZone),
+            [Op.gte]: DateTime.toGMT(start_date, timeZone),
+            [Op.lte]: DateTime.toGMT(end_date, timeZone),
           },
         };
       }
+
+      if (date && Number.isNotNull(req?.query?.date)) {
+        where.createdAt = {
+          [Op.and]: {
+            [Op.gte]: date?.startDate,
+            [Op.lte]: date?.endDate,
+          },
+        };
+      }
+      
       let stockEntryList = await StockEntryProduct.findAndCountAll({
         where: where,
       });
@@ -335,7 +360,7 @@ class StockEntryReportService {
           stockEntryProductArray.push({
             user_id: owner_id,
             store_id: store_id,
-            date:createdAt.toISOString().split('T')[0],
+            date: createdAt.toISOString().split('T')[0],
             shift_id: shift_id
           });
         }
@@ -384,7 +409,7 @@ class StockEntryReportService {
           list.sort((a, b) => a.product_count - b.product_count);
         }
       }
-       if(!sort){
+      if (!sort) {
 
         list.sort((a, b) => a.product_count - b.product_count);
       }
@@ -403,7 +428,7 @@ class StockEntryReportService {
           list.sort((a, b) => new Date(a.date) - new Date(b.date));
         } else {
           list.sort((a, b) => new Date(b.date) - new Date(a.date));
-          
+
         }
       }
 

@@ -34,6 +34,8 @@ const LocationService = require("./LocationService");
 const { STATUS_ACTIVE } = require("../helpers/User");
 const { getSettingValueByObject, getSettingValue } = require("./SettingService");
 const StockEntryProductService = require("./StockEntryProductService");
+const Currency = require("../lib/currency");
+const { fineService } = require("./FineBonusService");
 
 // Model
 const {
@@ -48,7 +50,8 @@ const {
   SaleSettlement,
   Attendance,
   Shift: shiftModel,
-  order: orderModel
+  order: orderModel,
+  Tag
 
 } = require("../db").models;
 
@@ -90,8 +93,15 @@ const reindex = async (ticket_id, companyId) => {
     if (ticketDetail.summary) {
       reIndexData.summary = ticketDetail.summary;
     }
-    if (ticketDetail.eta) {
-      reIndexData.eta = ticketDetail.eta;
+    if (ticketDetail.from_location) {
+      reIndexData.from_location = ticketDetail.from_location;
+    }
+    if (ticketDetail.to_location) {
+      reIndexData.to_location = ticketDetail.to_location;
+    }
+
+    if (ticketDetail.due_date) {
+      reIndexData.due_date = ticketDetail.due_date;
     }
     if (ticketDetail.ticket_number) {
       reIndexData.ticket_number = ticketDetail.ticket_number;
@@ -172,8 +182,11 @@ const reindex = async (ticket_id, companyId) => {
     if (ticketDetail.ticket_date) {
       reIndexData.ticket_date = ticketDetail.ticket_date;
     }
-    if(ticketDetail.createdAt) {
+    if (ticketDetail.createdAt) {
       reIndexData.createdAt = ticketDetail.createdAt;
+    }
+    if (ticketDetail.initial_eta) {
+      reIndexData.initial_eta = ticketDetail.initial_eta;
     }
     // create reindex
     await TicketIndex.create(reIndexData);
@@ -206,9 +219,9 @@ const ReindexAll = async (companyId, req) => {
     }
   }
 };
-const getNextTicketNumber =async (projectDetail, company_id) =>{
+const getNextTicketNumber = async (projectDetail, company_id) => {
 
-  try{
+  try {
     let item;
     let ticketNumber = projectDetail && projectDetail?.last_ticket_number;
     let code = projectDetail && projectDetail?.code
@@ -229,9 +242,9 @@ const getNextTicketNumber =async (projectDetail, company_id) =>{
       isExists = await TicketIndex.findOne({ where: { ticket_number: newTicketNumber, company_id: company_id } });
     }
 
-    return {newTicketNumber:newTicketNumber, lastTicketNumber:item};
+    return { newTicketNumber: newTicketNumber, lastTicketNumber: item };
 
-  }catch(err){
+  } catch (err) {
     console.log(err);
   }
 }
@@ -239,7 +252,7 @@ const create = async (req, res) => {
   try {
     const company_id = Request.GetCompanyId(req);
 
-    let { allowDuplicate=true } = req.body;
+    let { allowDuplicate = true } = req.body;
     let body;
     if (req && req?.params && req?.params?.id) {
       body = await TicketIndex.findOne({ where: { ticket_id: req?.params?.id, company_id: company_id } });
@@ -247,7 +260,7 @@ const create = async (req, res) => {
       body = req.body;
     }
     const projectDetail = await Project.findOne({
-      where: { company_id: company_id, id: body.projectId ? body.projectId : body.project_id },attributes:["last_ticket_number","code","id"]
+      where: { company_id: company_id, id: body.projectId ? body.projectId : body.project_id }, attributes: ["last_ticket_number", "code", "id"]
     });
     const data = body?.projectId ? body?.projectId : null;
     const defaultReviewer =
@@ -259,7 +272,7 @@ const create = async (req, res) => {
       body.reviewer = null;
     }
 
-    let response = await getNextTicketNumber(projectDetail,company_id);
+    let response = await getNextTicketNumber(projectDetail, company_id);
 
     let userId = req?.user?.id;
     const status = await StatusService.getFirstStatus(
@@ -272,8 +285,15 @@ const create = async (req, res) => {
     if (body.summary && body.summary !== "") {
       historyMessage.push(`Summary : ${body.summary}`);
     }
-    if (body.eta && body.eta !== "") {
-      historyMessage.push(`Eta: ${DateTime.shortMonthDate(body.eta)}`);
+    if (body.fromLocation && body.fromLocation !== "") {
+      historyMessage.push(`FromLocation : ${body.fromLocation}`);
+    }
+    if (body.toLocation && body.toLocation !== "") {
+      historyMessage.push(`ToLocation : ${body.toLocation}`);
+    }
+
+    if (body.due_date && body.due_date !== "") {
+      historyMessage.push(`Due Date: ${DateTime.shortMonthDate(body.due_date)}`);
     }
     if (response && response.newTicketNumber !== "") {
       historyMessage.push(`Ticket Number: ${response.newTicketNumber}`);
@@ -297,7 +317,7 @@ const create = async (req, res) => {
     let ticketCreateData = {
       company_id: company_id,
       summary: body.summary,
-      eta: body.eta && body.eta,
+      due_date: body.due_date && body.due_date,
       ticket_number: response.newTicketNumber ? response.newTicketNumber : "",
       assignee_id: body?.assignee_id?.id
         ? body?.assignee_id?.id
@@ -305,30 +325,33 @@ const create = async (req, res) => {
           ? body?.assignee_id?.value
           : body?.assignee_id
             ? body?.assignee_id
-            : getStatusDetail?.default_owner ? getStatusDetail?.default_owner 
-            : null,
+            : getStatusDetail?.default_owner ? getStatusDetail?.default_owner
+              : null,
       project_id: body?.projectId ? body?.projectId : body.project_id ? body.project_id : null,
       reporter_id: req?.body?.systemUser ? req?.body?.systemUser : body?.reporter_id ? body?.reporter_id : userId,
       status: status,
-      description: body?.description ? body?.description :null,
+      description: body?.description ? body?.description : null,
       type_id: body?.type_id ? body?.type_id : body?.ticketType?.value ? body?.ticketType?.value : body?.ticketType,
       component_id: body?.component_id ? body?.component_id : null,
       story_points: body?.story_points ? body?.story_points : null,
       recurring_task_id: body?.recurring_task_id ? body?.recurring_task_id : null,
-      ticket_date: body?.ticket_date ? body?.ticket_date : new Date()
+      ticket_date: body?.ticket_date ? body?.ticket_date : new Date(),
+      initial_eta: new Date(),
+      from_location: body.fromLocation,
+      to_location: body.toLocation,
     };
 
     if (body && body?.parent_ticket_id) {
       ticketCreateData.parent_ticket_id = body?.parent_ticket_id;
     }
     let ticketDetails;
-    if(!allowDuplicate){
+    if (!allowDuplicate) {
       const [record, created] = await Ticket.findOrCreate({
-        where: {summary: body.summary, project_id: ticketCreateData?.project_id, type_id: ticketCreateData?.type_id  ,eta : DateTime.getSQlFormattedDate(new Date()), ticket_date: ticketCreateData?.ticket_date },
-        defaults: {...ticketCreateData, assignee_id: ticketCreateData?.assignee_id}, 
+        where: { summary: body.summary, project_id: ticketCreateData?.project_id, type_id: ticketCreateData?.type_id, due_date: DateTime.getSQlFormattedDate(new Date()), ticket_date: ticketCreateData?.ticket_date },
+        defaults: { ...ticketCreateData, assignee_id: ticketCreateData?.assignee_id },
       });
       ticketDetails = record?.dataValues
-    }else{
+    } else {
       ticketDetails = await Ticket.create(ticketCreateData);
     }
 
@@ -395,14 +418,16 @@ const bulkDelete = async (req, res) => {
 async function update(req, res, next) {
   const hasPermission = await Permission.Has(Permission.TICKET_EDIT, req);
   const company_id = Request.GetCompanyId(req);
+  const roleId = Request.getUserRole(req);
   if (!hasPermission) {
     return res.json(400, { message: "Permission Denied" });
   }
   const data = req.body;
   const { id } = req.params;
   const summary = data.summary;
+  const fromLocation = data.fromLocation;
+  const toLocation = data.toLocation;
 
-  console.log('data-------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>> ', data);
   // Validate tag id
   if (!id) {
     return res.json(BAD_REQUEST, { message: "Assignee id is required" });
@@ -424,6 +449,7 @@ async function update(req, res, next) {
       { model: User, as: "testerDetail" },
     ],
   });
+
   const reviewerDetails =
     data?.reviewer &&
     (await User.findOne({
@@ -468,10 +494,27 @@ async function update(req, res, next) {
     historyMessage.push(`Summary Updated from ${ticketDetails?.summary} to ${summary}\n`);
   }
 
-  if (validator.isNotEmpty(data.eta) && DateTime.getSQlFormattedDate(data.eta) !== ticketDetails.eta) {
-    updateTicket.eta = data.eta;
+  if (validator.isNotEmpty(data.fromLocation) && data.fromLocation !== ticketDetails.from_location) {
+    updateTicket.from_location = data.fromLocation;
+    historyMessage.push(`FromLocation Updated from ${ticketDetails?.from_location} to ${fromLocation}\n`);
+  }
+
+  if (validator.isNotEmpty(data.toLocation) && data.toLocation !== ticketDetails.to_location) {
+    updateTicket.to_location = data.toLocation;
+    historyMessage.push(`ToLocation Updated from ${ticketDetails?.to_location} to ${toLocation}\n`);
+  }
+
+  if (validator.isNotEmpty(data.due_date) && DateTime.getSQlFormattedDate(data.due_date) !== ticketDetails.due_date) {
+    updateTicket.due_date = data.due_date;
     historyMessage.push(
-      `Eta Updated from ${DateTime.shortMonthDate(ticketDetails?.eta)} to ${DateTime.shortMonthDate(data?.eta)}\n`
+      `Due Date Updated from ${DateTime.shortMonthDate(ticketDetails?.due_date)} to ${DateTime.shortMonthDate(data?.due_date)}\n`
+    );
+  }
+
+  if (validator.isNotEmpty(data.initial_eta) && DateTime.getSQlFormattedDate(data.initial_eta) !== ticketDetails.initial_eta) {
+    updateTicket.initial_eta = data.initial_eta;
+    historyMessage.push(
+      `Initial Due Date Updated from ${DateTime.shortMonthDate(ticketDetails?.initial_eta)} to ${DateTime.shortMonthDate(data?.initial_eta)}\n`
     );
   }
 
@@ -582,6 +625,7 @@ async function update(req, res, next) {
       `Acceptance Criteria Updated from ${ticketDetails.acceptance_criteria} to ${data.acceptance_criteria}\n`
     );
   }
+
   if (validator.isNotEmpty(data.environment) && data.environment !== ticketDetails.environment) {
     updateTicket.environment = data.environment;
     historyMessage.push(`Environment Updated from ${ticketDetails.environment} to ${data.environment}\n`);
@@ -591,40 +635,46 @@ async function update(req, res, next) {
     updateTicket.test_step = data.test_step;
     historyMessage.push(`Test Step Updated from ${ticketDetails.test_step} to ${data.test_step}\n`);
   }
+
   if (validator.isNotEmpty(data.actual_results) && data.actual_results !== ticketDetails.actual_results) {
     updateTicket.actual_results = data.actual_results;
     historyMessage.push(`Actual Results Updated from ${ticketDetails.actual_results} to ${data.actual_results}\n`);
   }
+
   if (validator.isNotEmpty(data.expected_results) && data.expected_results !== ticketDetails.expected_results) {
     updateTicket.expected_results = data.expected_results;
     historyMessage.push(
       `Expected Results Updated from ${ticketDetails.expected_results} to ${data.expected_results}\n`
     );
   }
-  if (validator.isKeyAvailable(data,"type_id") && data.type_id !== ticketDetails.type_id) {
+
+  if (validator.isKeyAvailable(data, "type_id") && data.type_id !== ticketDetails.type_id) {
     updateTicket.type_id = data.type_id;
     historyMessage.push(`Type Updated from ${ticketDetails.type_id} to ${data.type_id}\n`);
   }
 
-  if (validator.isKeyAvailable(data,"component_id") && data.component_id !== ticketDetails.component_id) {
+  if (validator.isKeyAvailable(data, "component_id") && data.component_id !== ticketDetails.component_id) {
     updateTicket.component_id = data.component_id ? data.component_id : null;
     historyMessage.push(`Component Updated from ${ticketDetails.component_id} to ${data.component_id}\n`);
   }
 
-  if (validator.isKeyAvailable(data,"severity_id") && data.severity_id !== ticketDetails.severity_id) {
+  if (validator.isKeyAvailable(data, "severity_id") && data.severity_id !== ticketDetails.severity_id) {
     updateTicket.severity_id = data.severity_id;
     historyMessage.push(`Severity Updated from ${ticketDetails.severity_id} to ${data.severity_id}\n`);
   }
-  if (validator.isKeyAvailable(data,"priority") && data.priority !== ticketDetails.priority) {
+
+  if (validator.isKeyAvailable(data, "priority") && data.priority !== ticketDetails.priority) {
     updateTicket.priority = data.priority;
     historyMessage.push(`Priority Updated from ${ticketDetails.priority} to ${data.priority}\n`);
   }
+
   if (
     (data.story_points && data.story_points !== ticketDetails.story_points)
   ) {
     updateTicket.story_points = data.story_points ? data.story_points : null;
     historyMessage.push(`Story Points Updated from ${ticketDetails.story_points} to ${data.story_points}\n`);
   }
+
   if (
     (data.estimated_hours && data.estimated_hours !== ticketDetails.estimated_hours) ||
     (data.estimated_hours === '' && data.estimated_hours !== ticketDetails.estimated_hours)
@@ -671,9 +721,32 @@ async function update(req, res, next) {
       if (data?.assignee && ticketDetails && ticketDetails.assignee_id != data?.assignee) {
         SlackTicketService.sendTicketAssigneeNotification(id, req?.user?.id, ticketDetails?.assignee_id);
       }
-      let isDateDifferent = DateTime.CompareTwoDate(ticketDetails.eta, data.eta);
+      let isDateDifferent = DateTime.CompareTwoDate(ticketDetails.due_date, data.due_date);
       if (isDateDifferent) {
-        NotificationService.sendETAChangeNotification(id, req?.user?.id);
+        NotificationService.sendDueDateChangeNotification(id, req?.user?.id);
+      }
+
+
+      if (validator.isNotEmpty(data?.due_date) && DateTime.getSQlFormattedDate(data?.due_date) !== ticketDetails?.due_date) {
+        if ((validator.isNotEmpty(data?.due_date) && DateTime.getSQlFormattedDate(data?.due_date) !== ticketDetails?.due_date) && (DateTime.getSQlFormattedDate(data?.due_date) > ticketDetails?.initial_eta)) {
+          let isEnabledFineAddForTicketETAChange = await getSettingValueByObject(
+            Setting.FINE_ADD_FOR_TICKET_DUE_DATE_CHANGE,
+            company_id,
+            roleId,
+            ObjectName.ROLE
+          );
+          let numOfDueDateDays = DateTime.getDayCountByDateRange(ticketDetails?.initial_eta, DateTime.getSQlFormattedDate(data?.due_date));
+          let params = {
+            company_id,
+            type: ticketDetails && ticketDetails?.ticketTypedetail?.fine_type ? ticketDetails?.ticketTypedetail?.fine_type : null,
+            user_id: ticketDetails?.assignee_id,
+            due_date: DateTime.getSQlFormattedDate(data?.due_date),
+            numOfDueDateDays
+          }
+          if (isEnabledFineAddForTicketETAChange && isEnabledFineAddForTicketETAChange == "true") {
+            await addFineForDueDateChange(params)
+          }
+        }
       }
 
     });
@@ -725,7 +798,7 @@ async function updateStatus(req, res, next) {
   }
 
   if (Number.isNotNull(getStatusDetail?.default_due_date)) {
-    updateData.eta = getStatusDetail?.default_due_date;
+    updateData.due_date = getStatusDetail?.default_due_date;
   }
 
   ticketDetail.update(updateData).then((response) => {
@@ -744,7 +817,7 @@ async function updateStatus(req, res, next) {
         TicketNotificationService.sendTicketStatusChangeNotification(params);
       }
       if (Number.isNotNull(getStatusDetail?.default_due_date)) {
-        TicketNotificationService.sendETAChangeNotification(id, req?.user?.id);
+        TicketNotificationService.sendDueDateChangeNotification(id, req?.user?.id);
       }
 
       History.create(
@@ -760,8 +833,11 @@ async function updateStatus(req, res, next) {
 
 async function bulkUpdate(req, res, next) {
   const data = req.body;
+
   const { id } = req.params;
+
   const company_id = Request.GetCompanyId(req);
+
   let ticketIds = JSON.parse(req?.body?.selected_ids);
 
   if (ticketIds && !ticketIds.length > 0) {
@@ -787,8 +863,8 @@ async function bulkUpdate(req, res, next) {
       updateData.type_id = data.type_id;
     }
 
-    if (data.eta) {
-      updateData.eta = data.eta;
+    if (data.due_date) {
+      updateData.due_date = data.due_date;
     }
 
     if (data.story_points) {
@@ -797,6 +873,14 @@ async function bulkUpdate(req, res, next) {
 
     if (data.summary) {
       updateData.summary = data.summary;
+    }
+
+    if (data.fromLocation) {
+      updateData.fromLocation = data.fromLocation;
+    }
+
+    if (data.toLocation) {
+      updateData.toLocation = data.toLocation;
     }
 
     if (data.description) {
@@ -813,9 +897,15 @@ async function bulkUpdate(req, res, next) {
 
     for (let i = 0; i < ticketIds.length; i++) {
       const id = ticketIds[i];
+
+      if (data?.due_date) {
+        NotificationService.sendDueDateChangeNotification(id, req?.user?.id);
+      }
+
       await Ticket.update(updateData, {
         where: { id: id, company_id: company_id },
       });
+
       await reindex(id, company_id);
     }
     res.json(Response.CREATE_SUCCESS, {
@@ -863,7 +953,9 @@ async function getdetail(req, res, next) {
     let {
       id,
       summary,
-      eta,
+      from_location,
+      to_location,
+      due_date,
       ticket_number,
       createdAt,
       assignee_id,
@@ -896,7 +988,8 @@ async function getdetail(req, res, next) {
       delivery_date,
       developerDetail,
       testerDetail,
-      ticket_date
+      ticket_date,
+      initial_eta,
     } = TicketData.get();
 
     const UserRolePermission = async (name) => {
@@ -913,16 +1006,19 @@ async function getdetail(req, res, next) {
     let data = {
       id,
       summary,
+      from_location,
+      to_location,
       sprint,
       project: project_id,
       projectName: projectDetail?.name,
-      eta: eta,
-      etaTime: DateTime.getTimeOrNull(eta),
+      due_date: due_date,
+      initial_eta: initial_eta,
+      etaTime: DateTime.getTimeOrNull(due_date),
       ticket_number: ticket_number,
-      createdAt : DateTime.getDateTimeByUserProfileTimezone(createdAt,timeZone),
+      createdAt: DateTime.getDateTimeByUserProfileTimezone(createdAt, timeZone),
       assignee_id,
       reviewer,
-      updatedAt : DateTime.getDateTimeByUserProfileTimezone(updatedAt,timeZone),
+      updatedAt: DateTime.getDateTimeByUserProfileTimezone(updatedAt, timeZone),
       assignee: String.concatName(assignee?.name, assignee?.last_name),
       assignee_url: assignee?.media_url,
       description:
@@ -949,10 +1045,10 @@ async function getdetail(req, res, next) {
       reviewerName: String.concatName(reviewers?.name, reviewers?.last_name),
       reviewer_url: reviewers?.media_url,
       reviewer: reviewers?.id,
-      completed_at: DateTime.getDateTimeByUserProfileTimezone(completed_at,timeZone),
+      completed_at: DateTime.getDateTimeByUserProfileTimezone(completed_at, timeZone),
       type_name: ticketTypedetail && ticketTypedetail?.name,
       component: projectComponentDetail && projectComponentDetail?.name,
-      etaPermission: await UserRolePermission(Setting.PROJECT_SETTING_ALLOWED_USER),
+      dueDatePermission: await UserRolePermission(Setting.PROJECT_SETTING_ALLOWED_USER),
       storyPointPermission: await UserRolePermission(Setting.PROJECT_SETTING_ALLOWED_ROLES_FOR_STORY_POINT_CHANGE),
       delivery_date,
       allow_for_assignee_change_permission: await UserRolePermission(
@@ -964,7 +1060,7 @@ async function getdetail(req, res, next) {
       testerName: String.concatName(testerDetail?.name, testerDetail?.last_name),
       tester_url: testerDetail?.media_url,
       tester: testerDetail?.id,
-      ticket_date:ticket_date,
+      ticket_date: ticket_date,
       field: ticketTypedetail && ticketTypedetail?.fields,
 
     };
@@ -988,7 +1084,7 @@ async function search(req, res) {
     user,
     reviewer,
     projectId,
-    eta,
+    due_date,
     reporter,
     recurring_task_id,
     sprint,
@@ -1029,7 +1125,7 @@ async function search(req, res) {
     assignee_id: "assignee_id",
     reviewer: "reviewer",
     name: "name",
-    eta: "eta",
+    due_date: "due_date",
     sprint: "sprint",
     status: "status",
     createdAt: "createdAt",
@@ -1063,7 +1159,7 @@ async function search(req, res) {
   const endDate = data.endDate;
 
   if (startDate && !endDate) {
-    where.eta = {
+    where.due_date = {
       [Op.and]: {
         [Op.gte]: DateTime.getSQlFormattedDate(startDate), // Start of the day in the specified time zone
       },
@@ -1072,7 +1168,7 @@ async function search(req, res) {
 
   // endDate filter
   if (endDate && !startDate) {
-    where.eta = {
+    where.due_date = {
       [Op.and]: {
         [Op.lte]: DateTime.getSQlFormattedDate(endDate), // End of the day in the specified time zone
       },
@@ -1081,10 +1177,21 @@ async function search(req, res) {
 
   // startDate and endDate filter
   if (startDate && endDate) {
-    where.eta = {
+    where.due_date = {
       [Op.and]: {
         [Op.gte]: DateTime.getSQlFormattedDate(startDate), // Start of the day in the specified time zone
         [Op.lte]: DateTime.getSQlFormattedDate(endDate), // End of the day in the specified time zone
+      },
+    };
+  }
+
+  let date = DateTime.getCustomDateTime(req.query.date, timeZone)
+
+  if (date && Number.isNotNull(req.query.date)) {
+    where.due_date = {
+      [Op.and]: {
+        [Op.gte]: date?.startDate,
+        [Op.lte]: date?.endDate,
       },
     };
   }
@@ -1305,11 +1412,13 @@ async function search(req, res) {
         id,
         ticket_id,
         summary,
+        from_location,
+        to_location,
         assignee_id,
         assignee,
         reviewerDetail,
         reviewer,
-        eta,
+        due_date,
         createdAt,
         updatedAt,
         sprint,
@@ -1333,6 +1442,8 @@ async function search(req, res) {
         slug: projectDetail && projectDetail?.slug,
         ticket_number: ticket_number,
         summary: summary,
+        from_location: from_location,
+        to_location: to_location,
         assignee_id: assignee_id,
         reviewer: reviewer,
         firstName: assignee?.name,
@@ -1345,7 +1456,7 @@ async function search(req, res) {
         reviewer_name: reviewerDetail
           ? String.concatName(reviewerDetail.name, reviewerDetail.last_name)
           : "",
-        eta: eta,
+        due_date: due_date,
         allow_for_assignee_change_permission: await UserRolePermission(
           Setting.PROJECT_SETTING_ALLOWED_ROLES_FOR_ASSIGNEE_CHANGE,
           project_id
@@ -1360,8 +1471,8 @@ async function search(req, res) {
         project: projectDetail?.name,
         group: statusDetail?.group,
         projectId: project_id,
-        createdAt: DateTime.getDateTimeByUserProfileTimezone(createdAt,timeZone),
-        updatedAt: DateTime.getDateTimeByUserProfileTimezone(updatedAt,timeZone),
+        createdAt: DateTime.getDateTimeByUserProfileTimezone(createdAt, timeZone),
+        updatedAt: DateTime.getDateTimeByUserProfileTimezone(updatedAt, timeZone),
         description:
           description &&
             validator.isValidDraftFormat(Url.RawURLDecode(description))
@@ -1379,7 +1490,7 @@ async function search(req, res) {
           : '',
         story_points: story_points,
         estimated_hours: estimated_hours,
-        etaPermission: await UserRolePermission(
+        dueDatePermission: await UserRolePermission(
           Setting.PROJECT_SETTING_ALLOWED_USER,
           project_id
         ),
@@ -1404,7 +1515,7 @@ async function search(req, res) {
   }
 }
 
-const etaRequest = async (req, res, next) => {
+const dueDateRequest = async (req, res, next) => {
   let data = req.body;
   let companyId = Request.GetCompanyId(req);
   const TicketData = await Ticket.findOne({
@@ -1422,7 +1533,7 @@ const etaRequest = async (req, res, next) => {
   let reviewer = await UserService.getSlack(data?.reviewer, companyId);
   let assignee = await UserService.getSlack(TicketData?.assignee_id, companyId);
   const headerName = unescape(
-    `<@${reviewer?.slack_id}> Ticket ETA Change Request By <@${assignee?.slack_id}>`
+    `<@${reviewer?.slack_id}> Ticket Due Date Change Request By <@${assignee?.slack_id}>`
   );
   const ticketSummary = ` <${companyDetail.portal_url}/ticket/${TicketData?.projectDetail?.slug}/${TicketData?.ticket_number}|${TicketData?.ticket_number} : ${TicketData?.summary}>`;
   const text = unescape(
@@ -1433,19 +1544,19 @@ const etaRequest = async (req, res, next) => {
     reviewer && reviewer?.slack_id,
     text
   );
-  res.json(OK, { message: "ETA Change Request Sended" });
+  res.json(OK, { message: "Due Date Change Request Sended" });
   res.on("finish", async () => {
     await CommentService.create(req, null);
   });
 };
 
 const getDetailById = async (params) => {
-  if(!params?.ticketId){
-    throw { message: "Ticket id is Required"}
+  if (!params?.ticketId) {
+    throw { message: "Ticket id is Required" }
   }
 
-  if(!params?.companyId){
-    throw { message: "Company id is Required"}
+  if (!params?.companyId) {
+    throw { message: "Company id is Required" }
   }
 
   const TicketData = await TicketIndex.findOne({
@@ -1461,39 +1572,39 @@ const getDetailById = async (params) => {
 const createEnquiryTicket = async (enquiryTicketParams) => {
   let { req, company_id, summary, type } = enquiryTicketParams;
   try {
-  let timeZone = Request.getTimeZone(req);
+    let timeZone = Request.getTimeZone(req);
 
-    let currentDate = DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(),timeZone)
-  let reporterId = Request.getUserId(req);
-  let defaultType = await getSettingValue(type, company_id);
-  let ticketTypeData = await ProjectTicketType.findOne({
-    where: { id: defaultType, company_id: company_id },
-    attributes: ["project_id", "id", "name"],
-  });
+    let currentDate = DateTime.getCurrentDateTimeByUserProfileTimezone(new Date(), timeZone)
+    let reporterId = Request.getUserId(req);
+    let defaultType = await getSettingValue(type, company_id);
+    let ticketTypeData = await ProjectTicketType.findOne({
+      where: { id: defaultType, company_id: company_id },
+      attributes: ["project_id", "id", "name"],
+    });
 
-  req.body = {
-    projectId: ticketTypeData?.project_id,
-    summary: summary,
-    type_id: defaultType,
-    eta: currentDate,
-    ticket_date: currentDate,
-    reporter_id: reporterId,
-    allowDuplicate:false
-  };
-  let data = await create(req);
+    req.body = {
+      projectId: ticketTypeData?.project_id,
+      summary: summary,
+      type_id: defaultType,
+      due_date: currentDate,
+      ticket_date: currentDate,
+      reporter_id: reporterId,
+      allowDuplicate: false
+    };
+    let data = await create(req);
 
-  if (data?.historyMessage && data?.historyMessage.length > 0) {
-    let message = data?.historyMessage.join();
-    await History.create(`Created with the following: ${message}`, req, ObjectName.TICKET, data?.ticketDetails?.id);
-  } else {
-    await History.create("Ticket Added", req, ObjectName.TICKET, data?.ticketDetails?.id);
-  }
+    if (data?.historyMessage && data?.historyMessage.length > 0) {
+      let message = data?.historyMessage.join();
+      await History.create(`Created with the following: ${message}`, req, ObjectName.TICKET, data?.ticketDetails?.id);
+    } else {
+      await History.create("Ticket Added", req, ObjectName.TICKET, data?.ticketDetails?.id);
+    }
 
-  await reindex(data?.ticketDetails?.id, company_id);
-      
-} catch (error) {
+    await reindex(data?.ticketDetails?.id, company_id);
+
+  } catch (error) {
     console.log(error);
-}
+  }
 }
 
 
@@ -1736,7 +1847,7 @@ const enquiryTicket = async (params) => {
 
       if (isEnableStockEntryFineEnquiryTicket && isEnableStockEntryFineEnquiryTicket == "true") {
 
-         noStockEntryParams = {
+        noStockEntryParams = {
           user_id: attendanceValue.user_id,
           date: attendanceValue?.date,
           timeZone: timeZone,
@@ -1751,7 +1862,7 @@ const enquiryTicket = async (params) => {
       }
 
       if (isEnableLateCheckInFineEnquiryTicket && isEnableLateCheckInFineEnquiryTicket == "true") {
-         lateCheckInParams = {
+        lateCheckInParams = {
           user_id: attendanceValue.user_id,
           late_hours: attendanceValue?.late_hours,
           startTime: shiftData?.start_time,
@@ -1833,6 +1944,31 @@ const enquiryTicket = async (params) => {
 
 }
 
+const addFineForDueDateChange = async (params) => {
+  let { company_id, type, user_id, due_date, numOfDueDateDays } = params;
+
+  if (Number.isNotNull(type)) {
+    const tagDetail = await Tag.findOne({
+      where: { id: type, company_id: company_id },
+    });
+
+    if (Number.isNotNull(tagDetail)) {
+      let fineAmount = Number.GetFloat(tagDetail?.default_amount) * numOfDueDateDays;
+
+      let createData = {
+        user: user_id,
+        type: type,
+        amount: fineAmount,
+        company_id: company_id,
+        notes: ` Due Date Changed to ${due_date} \n Due Date Days : ${numOfDueDateDays} \n Fine Amount: ${Currency.IndianFormat(tagDetail?.default_amount)}`
+      };
+      await fineService.create({ body: createData, user: { id: user_id, company_id: company_id } }, null, null);
+    }
+  }
+
+
+}
+
 module.exports = {
   create,
   update,
@@ -1842,7 +1978,7 @@ module.exports = {
   ReindexAll,
   del,
   reindex,
-  etaRequest,
+  dueDateRequest,
   getDetailById,
   bulkDelete,
   getNextTicketNumber,
@@ -1850,5 +1986,6 @@ module.exports = {
   enquiryTicket,
   createLocationCashAmountFineEnquiryTicket,
   createOrderCashAmountMissingFineEnquiryTicket,
-  createOrderUpiAmountMissingFineEnquiryTicket
+  createOrderUpiAmountMissingFineEnquiryTicket,
+  addFineForDueDateChange
 };

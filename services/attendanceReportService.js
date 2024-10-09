@@ -5,7 +5,7 @@ const ShiftService = require('./ShiftService');
 const UserService = require('./UserService');
 const DateTime = require('../lib/dateTime');
 const String = require('../lib/string');
-const { Location, Shift, Attendance, UserIndex, UserEmployment } = require('../db').models;
+const { Location, Shift, Attendance, UserIndex, attendanceType } = require('../db').models;
 const mediaService = require("./MediaService");
 const Setting = require("../helpers/Setting");
 const { getSettingValue } = require("./SettingService");
@@ -100,6 +100,11 @@ const search = async (params, companyId, currentDate) => {
                 { model: Shift, as: 'primaryShift' },
           ],
         },
+        {
+          required: false,
+          model: attendanceType,
+          as: "attendanceTypeDetail",
+        },
       ],
     });
 
@@ -125,6 +130,7 @@ const search = async (params, companyId, currentDate) => {
           bothLocationMatched: bothLocationMatched,
           attendanceId: attendanceData[j].id,
           media_url: await mediaService.getMediaURL(attendanceData[j].check_in_media_id, companyId),
+          attendanceTypeDetail: attendanceData[j]?.attendanceTypeDetail
         };
         attendance.push(data);
       }

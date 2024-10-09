@@ -337,7 +337,7 @@ class ValidationService {
             { assignee_id: userId }
         ],
           status_group_id: { [Op.ne]: Status.GROUP_COMPLETED },
-          eta: { [Op.lte]: DateTime.getSQlFormattedDate(new Date()) },
+          due_date: { [Op.lte]: DateTime.getSQlFormattedDate(new Date()) },
         },
       });
       let pendingTicket = ticketList && ticketList.map(value => value.dataValues.ticket_number);
@@ -362,7 +362,7 @@ class ValidationService {
         where: {
           assignee_id: userId,
           status_group_id: { [Op.eq]: Status.GROUP_COMPLETED },
-          eta: new Date(),
+          due_date: new Date(),
           company_id: companyId,
         },
       }) || 0;

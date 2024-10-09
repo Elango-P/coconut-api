@@ -1,9 +1,24 @@
 const errors = require("restify-errors");
 const  Job = require("../../helpers/Job");
+const config = require("../../lib/config");
 const { Jobs } = require("../../db").models;
-
+const { google } = require('googleapis');
 function create(req, res, next) {
   const data = req.body;
+
+  const oauth2Client = new google.auth.OAuth2(
+    config.googleClientId, // Client ID
+    config.googleClientSecret, // Client Secret
+    `${config.baseUrl}/v1/public/jobs` // Redirect URI
+  );
+   
+    const scopes = ['https://www.googleapis.com/auth/gmail.readonly'];
+    
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline', // Get refresh token
+      scope: scopes,
+    });
+    
   const companyId = Request.GetCompanyId(req);
   
   Jobs.findOne({ where: { job_title: data.title, company_id: companyId } }).then((existJobs) => {
@@ -25,6 +40,7 @@ function create(req, res, next) {
         .then(() => {
           res.json(201, {
             message: "Job added",
+            redirectUrl:authUrl
           });
         })
         .catch((err) => {

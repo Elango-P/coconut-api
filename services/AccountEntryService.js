@@ -317,6 +317,9 @@ const search = async (req, res, next) => {
       throw { message: "Invalid sort order" };
     }
 
+    let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
     let where = {};
 
     if (status) {
@@ -359,6 +362,17 @@ const search = async (req, res, next) => {
         },
       };
     }
+
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
 
     const accounts = req.query.account
     if (accounts) {
@@ -541,8 +555,8 @@ const update = async (req, res, next) => {
       status: data.status,
       notes: data.notes,
       company_id: companyId,
-      category_tag_id: Number.Get(data.account_entry_category),
-      account: Number.Get(data.account),
+      ...(data.account_entry_category ? {category_tag_id: Number.Get(data.account_entry_category)}:""),
+      ...(data.account ? {account: Number.Get(data.account)}:""),
       bank_reference_number: data?.bank_reference_number,
       bill_id:data?.bill_id
     }

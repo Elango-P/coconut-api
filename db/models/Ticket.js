@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
 			type: DataTypes.INTEGER,
 			allowNull: true
 		},
-		eta: {
+		due_date: {
 			type: DataTypes.DATEONLY,
 			allowNull: true,
 		},
@@ -134,6 +134,18 @@ module.exports = (sequelize, DataTypes) => {
 		},
 		ticket_date: {
 			type: DataTypes.DATEONLY,
+			allowNull: true
+		},
+		initial_eta: {
+			type: DataTypes.DATEONLY,
+			allowNull: true,
+		},
+		from_location: {
+			type: DataTypes.TEXT,
+			allowNull: true
+		},
+		to_location: {
+			type: DataTypes.TEXT,
 			allowNull: true
 		},
 	};

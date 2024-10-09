@@ -38,8 +38,18 @@ async function list(req, res, next) {
 
 
   if(Number.isNotNull(data.accountCategory)){
-    let typeIds = await AccountTypeService.getAccountTypeByCategory(data.accountCategory,companyId)
-    where.type=typeIds
+    let params={
+      category: data.accountCategory,
+      companyId: companyId
+    }
+    let typeWhere={}
+    if(Number.isNotNull(data?.show_purchase)){
+      typeWhere.show_purchase = true
+    }
+    let typeIds = await AccountTypeService.getAccountTypeByCategory(params,typeWhere)
+    where.type={
+      [Op.in]: typeIds
+    }
   }
 
   const searchTerm = data.search ? data.search.trim() : null;

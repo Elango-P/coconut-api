@@ -24,12 +24,8 @@ db.models = require("./models")(db.connection, Sequelize);
 db.sequelize = Sequelize;
 
 db.service = require("../service");
-console.log("db------------------------", db)
-
 
 db.connect = (callback) => {
-	console.log("callback------------------------", callback)
-
 	db.connection.authenticate()
 .then(() => callback())
 .catch((err) => callback(err));

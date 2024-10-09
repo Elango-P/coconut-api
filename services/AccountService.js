@@ -4,7 +4,14 @@
 const { Op, Sequelize } = require("sequelize");
 const DataBaseService = require("../lib/dataBaseService");
 
-const { account, Purchase, status: StatusModel, vendorProduct, AddressModel, productIndex, AccountProductModel,AccountType:AccountTypeModel} = require("../db").models;
+const {
+    account,
+    Purchase,
+    status: StatusModel,
+    vendorProduct,
+    PaymentAccount,
+    AccountType: AccountTypeModel
+} = require("../db").models;
 const accountService = new DataBaseService(account);
 const History = require("./HistoryService");
 const ObjectName = require("../helpers/ObjectName");
@@ -92,6 +99,7 @@ const get = async (vendor_id, companyId) => {
 }
 
 
+
 const create = async (req, res, next) => {
     const data = req.body;
     const companyId = Request.GetCompanyId(req);
@@ -112,11 +120,19 @@ const create = async (req, res, next) => {
     if (data?.type){
         type = data?.type
     }else if(data?.accountCategory){
-        let typeIds = await AccountTypeService.getAccountTypeByCategory(data?.accountCategory,companyId)
+        let params={
+            category: data.accountCategory,
+            companyId: companyId
+          }
+        let typeIds = await AccountTypeService.getAccountTypeByCategory(params)
         type=typeIds[0]
     }else{
         let category = data.tab === Account.TAB_CUSTOMER ? Account.CATEGORY_CUSTOMER : data.tab === Account.TAB_EMPLOYER ? Account.CATEGORY_EMPLOYEE : Account.CATEGORY_VENDOR
-        let typeIds = await AccountTypeService.getAccountTypeByCategory(category,companyId)
+        let params={
+            category: category,
+            companyId: companyId
+          }
+        let typeIds = await AccountTypeService.getAccountTypeByCategory(params)
         type=typeIds[0]
     }
     const historyMessage = []
@@ -236,14 +252,14 @@ const getDetail = async (req, res, next) => {
         // Validate Vendor is exist or not
         const vendorDetails = await accountService.findOne({
             where: { id: Number.Get(id), company_id: companyId },
-            include:[{model:AccountTypeModel, as:"accountTypeDetail", required:false}]
+            include: [{ model: AccountTypeModel, as: "accountTypeDetail", required: false }]
         });
         if (!vendorDetails) {
             return res.json(Response.BAD_REQUEST, { message: "Vendor not found" });
         }
 
 
-        let billingAddress =  await AddressService.list({companyId:companyId,objectName:ObjectName.COMPANY})
+        let billingAddress = await AddressService.list({ companyId: companyId, objectName: ObjectName.COMPANY })
         let billingOption = [];
         if (billingAddress && billingAddress.length > 0) {
             for (let i = 0; i < billingAddress.length; i++) {
@@ -292,7 +308,7 @@ const getDetail = async (req, res, next) => {
 }
 
 const search = async (req, res, next) => {
-    let { page, pageSize, search, sort, sortDir, pagination, status, accountType, id,accountCategory } = req.query;
+    let { page, pageSize, search, sort, sortDir, pagination, status, accountType, id, accountCategory, type } = req.query;
     // Validate if page is not a number
 
     page = page ? parseInt(page, 10) : 1;
@@ -342,6 +358,10 @@ const search = async (req, res, next) => {
     const where = {};
     where.company_id = companyId;
 
+    if (type) {
+        where.type = type;
+    }
+
     if (status) {
         where.status = data.status;
     }
@@ -351,7 +371,11 @@ const search = async (req, res, next) => {
     }
 
     if(accountCategory){
-        let typeIds = await AccountTypeService.getAccountTypeByCategory(accountCategory,companyId)
+        let params={
+            category: accountCategory,
+            companyId: companyId
+          }
+        let typeIds = await AccountTypeService.getAccountTypeByCategory(params)
         where.type=typeIds
     }
     // Search by name
@@ -551,7 +575,12 @@ const vendorSearch = async (req, res, next) => {
 
     where.company_id = companyId;
 
-    let typeIds = await AccountTypeService.getAccountTypeByCategory(Account.CATEGORY_VENDOR,companyId)
+    let params={
+        category: Account.CATEGORY_VENDOR,
+        companyId: companyId
+      }
+
+    let typeIds = await AccountTypeService.getAccountTypeByCategory(params)
 
     where.type=typeIds
 
@@ -648,7 +677,7 @@ const vendorSearch = async (req, res, next) => {
 
             } = vendors.rows[i]
 
-            let purchaseDetail = purchaseList && purchaseList.length > 0 && purchaseList.find((data)=> data?.vendor_id == id)
+            let purchaseDetail = purchaseList && purchaseList.length > 0 && purchaseList.find((data) => data?.vendor_id == id)
             data.push({
                 id: id,
                 vendorName: name,
@@ -666,8 +695,8 @@ const vendorSearch = async (req, res, next) => {
                 category: accountTypeDetail && accountTypeDetail.category,
                 createdAt: DateTime.defaultDateFormat(createdAt),
                 updatedAt: DateTime.defaultDateFormat(updatedAt),
-                LastPurchasedAt: purchaseDetail?.dataValues?.latestPurchaseDate ? purchaseDetail?.dataValues?.latestPurchaseDate :"",
-                billing_name:billing_name
+                LastPurchasedAt: purchaseDetail?.dataValues?.latestPurchaseDate ? purchaseDetail?.dataValues?.latestPurchaseDate : "",
+                billing_name: billing_name
             });
 
 
@@ -676,7 +705,7 @@ const vendorSearch = async (req, res, next) => {
         let sortedValue = [];
         if (sort === 'LastPurchasedAt') {
             if (sortDir === 'ASC') {
-                data.sort((a, b) =>a?.LastPurchasedAt.localeCompare(b?.LastPurchasedAt));
+                data.sort((a, b) => a?.LastPurchasedAt.localeCompare(b?.LastPurchasedAt));
             } else {
                 data.sort((a, b) => b?.LastPurchasedAt.localeCompare(a?.LastPurchasedAt));
             }
@@ -1012,8 +1041,14 @@ const update = async (req, res, next) => {
         data.payment_account &&
         data.payment_account !== vendorDetails.payment_account
     ) {
+        const PaymentAccountData = await PaymentAccount.findOne({
+            where: {
+                id: data.payment_account,
+                company_id: companyId,
+            },
+        });
         historyMessage.push(
-            `Payment Account Updated from ${vendorDetails.payment_account} to ${data.payment_account}\n`
+            `Payment Account Updated to ${PaymentAccountData.payment_account_name}\n`
         );
     }
 
@@ -1027,27 +1062,37 @@ const update = async (req, res, next) => {
     if (typeof data.notes === 'string') {
         if (data.notes && data.notes !== vendorDetails.notes) {
             try {
-                // Parse the new notes data
                 const parsedNewNotes = JSON.parse(data.notes);
-                const newNotesText = parsedNewNotes?.blocks[0]?.text || '';
+                const newNotesText = parsedNewNotes?.blocks?.[0]?.text || '';
+
                 updateVendor.notes = data.notes;
 
                 const oldNotesDecoded = Url.RawURLDecode(vendorDetails.notes);
                 const parsedOldNotes = JSON.parse(oldNotesDecoded);
-                const oldNotesText = parsedOldNotes?.blocks[0]?.text || '';
+                const oldNotesText = parsedOldNotes?.blocks?.[0]?.text || '';
 
                 // Compare old and new notes text
                 if (oldNotesText !== newNotesText) {
-                    historyMessage.push(`Notes Updated to "${newNotesText}"\n`);
+                    if (newNotesText) {
+                        historyMessage.push(`Notes Updated to "${newNotesText}"\n`);
+                    } else {
+                        historyMessage.push(`Notes updated, but no text available.\n`);
+                    }
                 }
             } catch (error) {
                 updateVendor.notes = data.notes;
                 console.error(error);
-                historyMessage.push(`Notes Updated to ${data.notes}\n`);
+
+                if (data.notes) {
+                    historyMessage.push(`Notes Updated to "${data.notes}" (unstructured data)\n`);
+                } else {
+                    historyMessage.push(`Notes Updated, but data appears empty or invalid.\n`);
+                }
             }
         }
     } else {
         try {
+            // Handle case when data.notes is an object
             const newNotesData = data.notes ? JSON.parse(data.notes) : "";
             if (validator.isNotEmpty(data.notes) && data.notes !== vendorDetails.notes) {
                 updateVendor.notes = Url.RawURLEncode(data.notes);
@@ -1055,14 +1100,20 @@ const update = async (req, res, next) => {
                 const oldNotesDecoded = Url.RawURLDecode(vendorDetails.notes);
                 const oldNotesData = JSON.parse(oldNotesDecoded);
 
-                const oldNotesText = oldNotesData?.blocks[0]?.text || '';
-                const newNotesText = newNotesData?.blocks[0]?.text || '';
+                const oldNotesText = oldNotesData?.blocks?.[0]?.text || '';
+                const newNotesText = newNotesData?.blocks?.[0]?.text || '';
 
-                historyMessage.push(`Notes Updated to "${newNotesText}"\n`);
+                if (newNotesText) {
+                    historyMessage.push(`Notes Updated to "${newNotesText}"\n`);
+                } else {
+                    historyMessage.push(`Notes updated, but no text available.\n`);
+                }
             }
         } catch (error) {
+            // Handle parsing or encoding issues
             updateVendor.notes = data.notes;
-            console.error(error);
+            console.error('Error parsing or encoding notes:', error);
+            historyMessage.push(`Notes Updated, but an error occurred while processing.\n`);
         }
     }
 
@@ -1177,7 +1228,11 @@ const getVendorList = async (companyId) => {
 
     where.company_id = companyId;
     where.status = Account.STATUS_ACTIVE;
-    let accountTypeIds = await AccountTypeService.getAccountTypeByCategory(Account.CATEGORY_VENDOR,companyId)
+    let params={
+        category: Account.CATEGORY_VENDOR,
+        companyId: companyId
+      }
+    let accountTypeIds = await AccountTypeService.getAccountTypeByCategory(params)
 
     if(accountTypeIds && accountTypeIds.length>0){
         where.type=accountTypeIds

@@ -19,10 +19,6 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.INTEGER,
                 allowNull: false,
               },
-              type: {
-                type: DataTypes.INTEGER,
-                allowNull: false,
-              },
               days_count: {
                 type: DataTypes.INTEGER,
                 allowNull: false,
@@ -53,6 +49,34 @@ module.exports = (sequelize, DataTypes) => {
               },
               allow_late_checkin: {
                 type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },   
+               is_leave: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },
+              is_working_day: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },
+              is_additional_leave: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },
+              is_additional_shift: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },
+              is_additional_day: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },
+              is_absent: {
+                type: DataTypes.BOOLEAN,
+                allowNull: true,
+              },
+              allowed_days: {
+                type: DataTypes.STRING,
                 allowNull: true,
               },
         },

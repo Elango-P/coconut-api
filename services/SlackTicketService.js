@@ -224,7 +224,7 @@ class SlackTicketService {
                     throw { message: "Ticket Not Found" }
                 }
         
-                const { assignee_id, company_id, summary, type_id, status, ticket_number,eta } = ticketDetail;
+                const { assignee_id, company_id, summary, type_id, status, ticket_number,due_date } = ticketDetail;
         
                 if (type_id) {
                     ticketTypeDetail = await ProjectTicketTypeService.getById(type_id, company_id)
@@ -250,7 +250,7 @@ class SlackTicketService {
                 let companyDetail = await CompanyService.getCompanyDetailById(company_id);
                 if (companyDetail) {
                     const ticketSummary = ` <${companyDetail.portal_url}/ticket/${projectDetail && projectDetail?.slug}/${ticket_number}|${ticket_number} : ${summary}>`
-                    const text = unescape(`<@${newAssignee && newAssignee.slack_id}> Ticket assigned to you \n [ETA: ${DateTime.shortMonthDate(eta)}] ${ticketSummary}`);
+                    const text = unescape(`<@${newAssignee && newAssignee.slack_id}> Ticket assigned to you \n [Due Date: ${DateTime.shortMonthDate(due_date)}] ${ticketSummary}`);
                     await SlackService.sendMessageToUser(company_id, newAssignee && newAssignee?.slack_id, text)
                 }
         

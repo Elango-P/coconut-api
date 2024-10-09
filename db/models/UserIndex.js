@@ -21,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+      force_logout : {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       first_name: {
         type: DataTypes.STRING,
         allowNull: true,

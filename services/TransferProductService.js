@@ -23,6 +23,7 @@ const { getSettingValue } = require("./SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../helpers/Setting");
 const UserService = require("./UserService");
 const Setting = require("../helpers/Setting");
+const Numbers = require("../lib/Number");
 
 
 
@@ -193,10 +194,10 @@ const update = async (req, res) => {
 const report = async (req, res) => {
   try {
     // Validate Permissions exist or not.
-    const hasPermission = await Permission.GetValueByName(Permission.TRANSFER_PRODUCT_REPORT_VIEW, req.role_permision);
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    };
+    // const hasPermission = await Permission.GetValueByName(Permission.TRANSFER_PRODUCT_REPORT_VIEW, req.role_permision);
+    // if (!hasPermission) {
+    //   return res.json(400, { message: "Permission Denied" });
+    // };
     //get req params
     let params = req.query;
 
@@ -220,6 +221,9 @@ const report = async (req, res) => {
       throw { message: "Invalid page size" };
     }
     let timeZone = Request.getTimeZone(req);
+
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
     let start_date = DateTime.toGetISOStringWithDayStartTime(startDate)
     let end_date = DateTime.toGetISOStringWithDayEndTime(endDate)
 
@@ -278,6 +282,15 @@ const report = async (req, res) => {
         [Op.and]: {
           [Op.gte]: DateTime.toGMT(start_date,timeZone),
           [Op.lte]:  DateTime.toGMT(end_date,timeZone),
+        },
+      };
+    }
+
+    if (date && Numbers.isNotNull(req?.query?.date)) {
+      where.createdAt = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }
@@ -536,7 +549,7 @@ const report = async (req, res) => {
   }
 };
 const userWiseReport =async (params,res)=> {
-  let { page, pageSize, search, sort, sortDir, pagination, user, company_id, date } = params;
+  let { page, pageSize, search, sort, sortDir, pagination, user, company_id, date, startDate, endDate } = params;
 
   // Validate if page is not a number
   page = page ? parseInt(page, 10) : 1;
@@ -585,12 +598,12 @@ const userWiseReport =async (params,res)=> {
 
   let where = {};
 
-  if (date) {
+  if (date || startDate || endDate) {
     where.createdAt = {
 
       [Op.and]: {
-        [Op.gte]: DateTime.toGetISOStringWithDayStartTime(date),
-        [Op.lte]: DateTime.toGetISOStringWithDayEndTime(date),
+        [Op.gte]: DateTime.toGetISOStringWithDayStartTime(startDate ? startDate : date),
+        [Op.lte]: DateTime.toGetISOStringWithDayEndTime(endDate ? endDate : date),
       },
     };
   }

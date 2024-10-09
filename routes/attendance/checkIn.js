@@ -25,6 +25,8 @@ const UserService = require("../../services/UserService");
 const { addFineForLateCheckIn, addBonusForEarlyCheckIn } = require("../../services/AttendanceService");
 const AttendanceService = require("../../services/AttendanceService");
 const Number = require("../../lib/Number");
+const AttendanceTypeService = require("../../services/AttendanceTypeService");
+const ArrayList = require("../../lib/ArrayList");
 
 
 async function checkIn(req, res, next) {
@@ -32,7 +34,6 @@ async function checkIn(req, res, next) {
   
 
     let data = req.body;
-
     const companyId = Request.GetCompanyId(req);
 
     const user = Request.getUserId(req)
@@ -65,6 +66,10 @@ async function checkIn(req, res, next) {
       ObjectName.ROLE
     );
 
+    let workingDayIds=null
+    if(data?.is_working_day){
+     workingDayIds = await AttendanceTypeService.getAttendanceTypeId({is_working_day:true, company_id: companyId})
+    }
 
     if(isValidateShiftTimeOnAttendanceCheckInEnabled == "true"){
     await ValidationService.ValidateLocation (roleId, ip_address, companyId, 'checkIn')
@@ -116,18 +121,33 @@ async function checkIn(req, res, next) {
       where: { user_id: user, date: date, company_id: companyId, login: { [Op.ne]: null }, logout: { [Op.ne]: null } },
     })
 
-    if (attendanceExist && data.type != Attendance.TYPE_LEAVE) {
-      attendanceData.type = Attendance.TYPE_ADDITIONAL_DAY;
+    let leaveIds = await AttendanceTypeService.getAttendanceTypeId({is_leave:true, company_id: companyId})
+    if(attendanceExist && Number.isNotNull(workingDayIds[0]) && !leaveIds?.includes(workingDayIds[0])){
+      let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: companyId})
+      if(ArrayList.isArray(additionalDayIds)){
+        attendanceData.type = additionalDayIds[0];
+      }
     } else {
-      attendanceData.type = data.type;
+      attendanceData.type = workingDayIds[0];
     }
   
     const attendance = await AttendanceModal.create(attendanceData);
-    
+
+    if(attendance && attendance?.id){
+      await User.update(
+        { current_shift_id: attendance?.shift_id, current_location_id: attendance?.store_id,last_checkin_at:attendance?.login }, 
+        { where : { id: attendance?.user_id, company_id: companyId}});
+        
+    UserService.reindex( attendance?.user_id, companyId);
+    }
+
     let fineResponse=null;
     let bonusResponse=null
 
-    if ((Number.isNotNull(isEnableFineAddForLateCheckIn) && isEnableFineAddForLateCheckIn == "true" && attendanceData?.type !== Attendance.TYPE_ADDITIONAL_DAY)) {
+    let additionalDayIds = await AttendanceTypeService.getAttendanceTypeId({is_additional_day:true, company_id: companyId})
+
+
+    if ((Number.isNotNull(isEnableFineAddForLateCheckIn) && isEnableFineAddForLateCheckIn == "true" && !additionalDayIds?.includes(attendanceData?.type))) {
       let lateCheckInParams = {
         user_id: user,
         late_hours: attendanceData?.late_hours,
@@ -163,19 +183,13 @@ async function checkIn(req, res, next) {
     res.on("finish", async () => {
       //create system log for product updation
       History.create("CheckIn Added", req,
-        ObjectName.ATTENDANCE, attendance.id
+        ObjectName.ATTENDANCE, attendance?.id
       );
 
       if(attendance){
-        await User.update(
-          { current_shift_id: attendance.shift_id, current_location_id: attendance.store_id,last_checkin_at:attendance.login }, 
-          { where : { id: attendance.user_id, company_id: companyId}});
-      }
-
-      UserService.reindex( attendance.user_id, companyId);
-    
       await ActivityService.createActivityOnUserCheckIn(req,attendanceData,companyId)
       WhatsappService.sendAttendanceNotification(`${req.user.name} Checked In`, companyId);
+      }
 
     });
   } catch (err) {

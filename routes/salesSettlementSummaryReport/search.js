@@ -10,6 +10,8 @@ const DateTime = require('../../lib/dateTime');
 const Location = require('../../helpers/Location');
 const saleSettlement = require('../../helpers/SaleSettlement');
 const SaleReport = require('../../helpers/SalesSettlementReport');
+const Request = require("../../lib/request");
+const Numbers = require("../../lib/Number");
 
 async function search(req, res, next) {
   const hasPermission = await Permission.Has(Permission.SALES_SETTLEMENT_REPORT_VIEW, req);
@@ -19,10 +21,11 @@ async function search(req, res, next) {
       message: 'Permission Denied',
     });
   }
-  const params = req.query;
-  const data = req.body;
   let companyId = req.user && req.user.company_id;
-  const where = {};
+
+  let timeZone = Request.getTimeZone(req)
+
+  let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
 
   if (!companyId) {
     return res.send(404, {
@@ -31,10 +34,11 @@ async function search(req, res, next) {
   }
 
   try {
-    let data = await service.searchStore(req.query, companyId);
+    let data = await service.searchStore(req.query, companyId, timeZone, date);
     const saleWhere = {};
     const locationWhere = {};
     let { startDate, endDate, location, type, shift, paymentType } = req.query;
+
     if (startDate && !endDate) {
       saleWhere.date = {
         [Op.and]: {
@@ -59,11 +63,21 @@ async function search(req, res, next) {
         },
       };
     }
+
+    if (date && Numbers.isNotNull(req.query?.date)) {
+      saleWhere.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (location) {
       saleWhere.store_id = location;
     }
-      locationWhere.status = Location.STATUS_ACTIVE;
-      locationWhere.allow_sale = Location.ENABLED;
+    locationWhere.status = Location.STATUS_ACTIVE;
+    locationWhere.allow_sale = Location.ENABLED;
 
     saleWhere.company_id = companyId;
     if (shift) saleWhere.shift = shift;
@@ -75,7 +89,7 @@ async function search(req, res, next) {
           required: true,
           model: locationModel,
           as: 'location',
-         where:locationWhere
+          where: locationWhere
         },
       ],
       where: saleWhere,

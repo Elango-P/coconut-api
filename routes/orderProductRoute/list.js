@@ -11,6 +11,7 @@ const { getSettingValue } = require("../../services/SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../../helpers/Setting");
 const Request = require("../../lib/request");
 const ObjectHelper = require("../../helpers/ObjectHelper");
+const Numbers = require("../../lib/Number");
 async function list(req, res, next) {
   try {
     const hasPermission = await Permission.Has(Permission.ORDER_PRODUCT_REPORT_VIEW, req);
@@ -59,6 +60,8 @@ async function list(req, res, next) {
     if (!validOrder.includes(sortDirParam)) {
       throw { message: 'Invalid sort order' };
     }
+
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
     //Get Order Product Cancelled status
     let statusDetail = await StatusService.getAllStatusByGroupId(ObjectName.ORDER_PRODUCT, Status.GROUP_CANCELLED, companyId);
     const statusIdsArray = statusDetail && statusDetail.length >0 && statusDetail.map(status => status.id);
@@ -242,6 +245,41 @@ async function list(req, res, next) {
         },
       };
     }
+
+    if (date && Numbers.isNotNull(req.query.date)) {
+      if (whereClause) {
+        whereClause += ' AND ';
+      }
+      whereClause += ` order_product."order_date" BETWEEN '${date?.startDate}' AND '${date?.endDate}' `;
+      if (startTime && endTime) {
+        whereClause += `
+          AND (
+            EXTRACT(HOUR FROM "order_product"."createdAt"::time) * 60 +
+            EXTRACT(MINUTE FROM "order_product"."createdAt"::time)
+          ) > ${parseInt(startTimeValue.split(':')[0]) * 60 + parseInt(startTimeValue.split(':')[1])}
+          AND (
+            EXTRACT(HOUR FROM "order_product"."createdAt"::time) * 60 +
+            EXTRACT(MINUTE FROM "order_product"."createdAt"::time)
+          ) < ${parseInt(endTimeValue.split(':')[0]) * 60 + parseInt(endTimeValue.split(':')[1])}
+        `;
+
+        totalAmountWhere.createdAt = {
+          [Op.and] : {
+          [Op.gte]: Sequelize.literal(`(EXTRACT(HOUR FROM "order_product"."createdAt"::time) * 60 + EXTRACT(MINUTE FROM "order_product"."createdAt"::time)) > ${parseInt(startTimeValue.split(':')[0]) * 60 + parseInt(startTimeValue.split(':')[1])}`),
+
+          [Op.lte]: Sequelize.literal(`(EXTRACT(HOUR FROM "order_product"."createdAt"::time) * 60 + EXTRACT(MINUTE FROM "order_product"."createdAt"::time)) < ${parseInt(endTimeValue.split(':')[0]) * 60 + parseInt(endTimeValue.split(':')[1])}`),
+        },
+      }  
+      }
+      
+      totalAmountWhere.order_date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (account && productIds && productIds.length > 0) {
       if (whereClause) {
         whereClause += ' AND ';

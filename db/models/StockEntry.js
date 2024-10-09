@@ -2,6 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const Location = require("./Location")(sequelize, DataTypes);
   const User = require("./User")(sequelize, DataTypes);
 	const status = require("./status")(sequelize, DataTypes);
+  const Shift = require("./Shift")(sequelize, DataTypes);
 
 
   const StockEntrySchema = {
@@ -64,6 +65,10 @@ module.exports = (sequelize, DataTypes) => {
     StockEntry.belongsTo(status, {
       as: "statusDetail",
       foreignKey: "status"
+    })
+    StockEntry.belongsTo(Shift, {
+      as: "shiftDetail",
+      foreignKey: "shift_id"
     })
   
 

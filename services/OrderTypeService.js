@@ -14,8 +14,8 @@ const { Op } = require('sequelize');
 // const TransferTypeHelper = require('../helpers/OrderType');
 const Status = require('../helpers/Status');
 const Number = require("../lib/Number");
-const { orderTypeGroupOptions, OrderTypeGroup } = require("../helpers/OrderTypeGroup");
-const { OrderType } = require('../db').models;
+const {  OrderTypeGroup } = require("../helpers/OrderTypeGroup");
+const { OrderType, Location } = require('../db').models;
 const OrderTypeModal = new DataBaseService(OrderType);
 
 class OrderTypeService {
@@ -37,9 +37,11 @@ class OrderTypeService {
             //update OrderType details
             const detail = {
                 name: data.name,
-                group: data.group,
+                default_location: Number.Get(data?.default_location),
                 company_id: companyId,
                 show_customer_selection: data?.show_customer_selection,
+                allow_delivery: data?.allow_delivery,
+                allow_store_order: data?.allow_store_order,
             };
 
             const orderType = await OrderTypeModal.create(detail);
@@ -79,6 +81,7 @@ class OrderTypeService {
                 createdAt: 'createdAt',
                 updatedAt: 'updatedAt',
                 id: 'id',
+                default_location:"default_location"
             };
 
             const sortParam = sort || 'name';
@@ -113,6 +116,15 @@ class OrderTypeService {
             const query = {
                 order: [[sortParam, sortDirParam]],
                 where,
+                include: [
+                    {
+                        required: false,
+                        model: Location,
+                        as: "locationDetail",
+                        attributes: ["name"]
+
+                    }
+                ]
             };
 
             if (pagination) {
@@ -133,14 +145,17 @@ class OrderTypeService {
 
             for (const orderTypeData of results.rows) {
 
+                let locationDetail = orderTypeData?.locationDetail;
+
                 data.push({
                     id: orderTypeData.id,
                     name: orderTypeData.name,
-                    group: orderTypeData.group,
-                    groupName: orderTypeGroupOptions.find(value=>value.value == orderTypeData.group)?.label,
                     createdAt: defaultDateFormat(orderTypeData.createdAt),
                     updatedAt: defaultDateFormat(orderTypeData.updatedAt),
-                    show_customer_selection:orderTypeData?.show_customer_selection == OrderTypeGroup.ENABLE_CUSTOMER_SELECTION ?true:false
+                    show_customer_selection: orderTypeData?.show_customer_selection == OrderTypeGroup.ENABLE_CUSTOMER_SELECTION ? true : false,
+                    allow_store_order: orderTypeData?.allow_store_order == OrderTypeGroup.ENABLE_STORE_ORDER ? true : false,
+                    allow_delivery: orderTypeData?.allow_delivery == OrderTypeGroup.ENABLE_DELIVERY_ORDER ? true : false,
+                    defaultLocation: locationDetail?.name
                 });
             }
 
@@ -169,8 +184,10 @@ class OrderTypeService {
             //update OrderType details
             const detail = {
                 name: name,
-                group:data?.group,
+                default_location: Number.Get(data?.default_location),
                 show_customer_selection: data?.show_customer_selection,
+                allow_delivery: data?.allow_delivery,
+                allow_store_order: data?.allow_store_order,
 
             };
 
@@ -217,14 +234,11 @@ class OrderTypeService {
         }
     }
 
-    static async get(req, res) {
+    static async get(id,company_id) {
         try {
-            const { id } = req.params;
-
-            const company_id = Request.GetCompanyId(req);
 
             if (!id) {
-                return res.json(400, { message: 'Invalid Id' });
+                throw { message: "Invalid Id" };
             }
 
             const OrderTypeData = await OrderType.findOne({
@@ -234,32 +248,43 @@ class OrderTypeService {
                 },
             });
 
-            if (!OrderTypeData) return res.json(200, { message: 'No Records Found' });
+            if (!OrderTypeData)  throw { message: "No Records Found" };;
 
-            let { name,group,show_customer_selection } = OrderTypeData.get();
+            let { name, show_customer_selection, default_location,allow_store_order,allow_delivery } = OrderTypeData.get();
 
             let data = {
                 name,
                 id,
-                group,
-              show_customer_selection:show_customer_selection == OrderTypeGroup.ENABLE_CUSTOMER_SELECTION ?true:false
+                default_location,
+                allow_store_order: allow_store_order == OrderTypeGroup.ENABLE_STORE_ORDER ? true : false,
+                allow_delivery: allow_delivery == OrderTypeGroup.ENABLE_DELIVERY_ORDER ? true : false,
+                show_customer_selection: show_customer_selection == OrderTypeGroup.ENABLE_CUSTOMER_SELECTION ? true : false
             };
+            return data
 
-            res.json(200, data);
         } catch (err) {
             console.log(err);
         }
     }
 
 
-    static async list(companyId) {
+    static async list(params, companyId,condition) {
         try {
-            const where = {};
+            let where = {};
 
             where.company_id = companyId;
+            
+           
+            if(Number.isNotNull(params?.id)){
+                where.id = params?.id
+            }
+            
+            if (condition) {
+                where = { ...where, ...condition };
+              }
 
             const query = {
-                order: [["name", "ASC"]],
+                order: [["allow_store_order", "DESC"]],
                 where,
             };
 
@@ -269,12 +294,14 @@ class OrderTypeService {
 
             for (const OrderTypeData of results) {
                 data.push({
-                    value: OrderTypeData.id,
-                    label: OrderTypeData.name,
-                    id: OrderTypeData.id,
-                    group: OrderTypeData?.group,
-                    groupName: orderTypeGroupOptions.find(value => value.value == OrderTypeData?.group),
-                    show_customer_selection:OrderTypeData?.show_customer_selection == OrderTypeGroup.ENABLE_CUSTOMER_SELECTION ?true:false
+                    value: OrderTypeData?.id,
+                    label: OrderTypeData?.name,
+                    name: OrderTypeData?.name,
+                    id: OrderTypeData?.id,
+                    companyId: OrderTypeData?.company_id,
+                    show_customer_selection: OrderTypeData?.show_customer_selection,
+                    allow_store_order: OrderTypeData?.allow_store_order,
+                    allow_delivery: OrderTypeData?.allow_delivery
 
                 });
             }
@@ -285,14 +312,13 @@ class OrderTypeService {
             throw { err: err };
         }
     }
-    static async getOrderTypeId(companyId,orderTypeGroup) {
+    static async getOrderTypeId(companyId) {
 
         try {
             const where = {};
 
             where.company_id = companyId;
-            
-            where.group = orderTypeGroup
+
 
             const OrderTypeQuery = {
                 order: [["name", "ASC"]],
@@ -303,11 +329,11 @@ class OrderTypeService {
 
             const Ids = [];
 
-            if(results && results.length>0){
+            if (results && results.length > 0) {
 
-              for (const OrderTypeData of results) {
-                  Ids.push(OrderTypeData?.id);
-              }
+                for (const OrderTypeData of results) {
+                    Ids.push(OrderTypeData?.id);
+                }
             }
 
             return Ids

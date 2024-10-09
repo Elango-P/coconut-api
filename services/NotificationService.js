@@ -41,7 +41,7 @@ class NotificationService{
     }
       };
 
-      static async sendETAChangeNotification (ticket_id, requestUserId) {
+      static async sendDueDateChangeNotification (ticket_id, requestUserId) {
 
         let ticketTypeDetail;
     
@@ -55,7 +55,7 @@ class NotificationService{
           throw { message: "Ticket Not Found" }
         }
     
-        const { id, assignee_id, company_id, eta, summary, type_id, status, ticket_number } = ticketDetail;
+        const { id, assignee_id, company_id, due_date, summary, type_id, status, ticket_number } = ticketDetail;
     
         let requestUserDetail = await UserService.getSlack(requestUserId, company_id);
     
@@ -79,12 +79,12 @@ class NotificationService{
           throw { message: "Assignee User Slack Id Not Found" }
         }
     
-        const formattedETA = eta ? `${utils.formatDate(eta, dateTime.formats.frontendDateFormat)}` : "";
+        const formattedETA = due_date ? `${utils.formatDate(due_date, dateTime.formats.frontendDateFormat)}` : "";
         let projectDetail = await Project.findOne(({ where : { id: ticketDetail && ticketDetail?.project_id, company_id: company_id}}))
     
         const ticketSummary = ` <${companyDetail.portal_url}/ticket/${projectDetail?.slug}/${ticket_number}|${ticket_number} : ${summary}>`
     
-        const text = unescape(`<@${assigneeDetail.slack_id}> Your Ticket ETA changed to ${formattedETA} \n [${ticketTypeDetail ? `${ticketTypeDetail.name} -` : ""}${statusDetail.name}] ${ticketSummary}`);
+        const text = unescape(`<@${assigneeDetail.slack_id}> Your Ticket Due Date changed to ${formattedETA} \n [${ticketTypeDetail ? `${ticketTypeDetail.name} -` : ""}${statusDetail.name}] ${ticketSummary}`);
     
         SlackService.sendMessageToUser(company_id, assigneeDetail && assigneeDetail?.slack_id, text)
     

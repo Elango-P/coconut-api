@@ -41,6 +41,11 @@ const search = async (req, res) => {
       type,
       pagination,
     } = req.query;
+
+    let timeZone = Request.getTimeZone(req)
+
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
     const where = {};
 
     // Apply filters if there is one
@@ -79,6 +84,15 @@ const search = async (req, res) => {
         [Op.and]: {
           [Op.gte]: startDate,
           [Op.lte]: endDate,
+        },
+      };
+    }
+
+    if (date && Number.isNotNull(req.query?.date)) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
         },
       };
     }
@@ -262,7 +276,6 @@ const search = async (req, res) => {
     let draftOrderAmount = 0;
     let saleOrderData = {};
     let orderWhere = {};
-    let timeZone = Request.getTimeZone(req);
 
     let draftOrderStatus = await StatusService.Get(
       ObjectName.ORDER_TYPE,

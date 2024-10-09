@@ -33,12 +33,14 @@ const { getSettingValue } = require('./SettingService');
 const Location = require('../helpers/Location');
 const PurchaseOrderProduct = require('../helpers/PurchaseOrderProduct');
 const StatusService = require("../services/StatusService");
+const UserService = require("./UserService");
 
 const search = async (req, res, next) => {
   try {
     let { page, pageSize, search, sort, sortDir, status, account, objectName, pagination, startDate, endDate, vendor } =
       req.query;
     const company_id = Request.GetCompanyId(req);
+    const timeZone = Request.getTimeZone(req);
     const where = {};
 
     where.company_id = company_id;
@@ -58,6 +60,17 @@ const search = async (req, res, next) => {
     };
     if (Numbers.isNotNull(vendor)) {
       where.vendor_id = vendor;
+    }
+
+    let date = DateTime.getCustomDateTime(req?.query?.date, timeZone)
+
+    if (date && Numbers.isNotNull(req?.query?.date)) {
+      where.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
     }
 
     if (!startDate && endDate) {
@@ -289,7 +302,7 @@ const create = async (req, res, next) => {
     } else {
       purchase_order_number = purchaseOrderNumberData + 1;
     }
-    
+
     //create stock create object
     let CreateData = {
       company_id,
@@ -405,6 +418,72 @@ const get = async (req, res, next) => {
     console.log(err);
   }
 };
+
+const createAuditLog = async (oldData, updatedData, req, id) => {
+  let companyId = Request.GetCompanyId(req);
+  let auditLogMessage = [];
+
+  if (updatedData?.date && oldData?.date !== updatedData.date) {
+    if (oldData?.date !== updatedData.date) {
+      auditLogMessage.push(`Date Changed to ${updatedData?.date}\n`);
+    }
+  }
+
+  if (updatedData?.delivery_date) {
+    let deliveryDate = DateTime.DateOnly(updatedData?.delivery_date);
+    if (deliveryDate && deliveryDate !== oldData?.delivery_date) {
+      auditLogMessage.push(`Delivery Date Updated to  ${deliveryDate}\n`);
+    }
+  }
+
+  if (updatedData?.description && updatedData?.description !== oldData?.description) {
+    if (oldData?.description !== updatedData?.description) {
+      auditLogMessage.push(`Description Updated to  ${updatedData?.description}\n`);
+    }
+  }
+
+  if (Numbers.Get(updatedData?.owner)) {
+    if (Numbers.Get(updatedData?.owner) !== Numbers.Get(oldData?.owner_id)) {
+      let userData = await UserService.get(updatedData?.owner, companyId);
+      auditLogMessage.push(`Owner Updated to ${String.concatName(userData?.name, userData?.last_name)}\n`);
+
+    }
+  }
+
+  if (updatedData?.vendor_id && Numbers.Get(updatedData?.vendor_id) !== Numbers.Get(oldData?.vendor_id)) {
+    const vendorData = await accountService.findOne({
+      where: { id: updatedData?.vendor_id, company_id: companyId },
+    });
+    auditLogMessage.push(`Vendor Updated to ${vendorData?.name}\n`);
+  }
+
+  if (Numbers.isNotNull(updatedData?.billingAddress)) {
+    if (Numbers.isNotNull(updatedData?.billingAddress) !== Numbers.Get(oldData?.billing_address_id)) {
+      let addressDetails = await addressService.findOne({
+        where: { id: updatedData?.billingAddress, company_id: companyId },
+      })
+      auditLogMessage.push(`Billing Address Updated to ${addressDetails?.title}, ${addressDetails?.name}\n`);
+    }
+  }
+
+  if (Numbers.isNotNull(updatedData?.deliveryAddress)) {
+    if (Numbers.isNotNull(updatedData?.deliveryAddress) !== Numbers.Get(oldData?.delivery_address_id)) {
+      let addressDetails = await addressService.findOne({
+        where: { id: updatedData?.deliveryAddress, company_id: companyId },
+      })
+      auditLogMessage.push(`Delivery Address Updated to ${addressDetails?.title}, ${addressDetails?.name}\n`);
+    }
+  }
+
+  if (auditLogMessage.length > 0) {
+    let message = auditLogMessage.join('');
+    History.create(message, req, ObjectName.PURCHASE_ORDER, id);
+  } else {
+    History.create("Purchase Order Updated", req, ObjectName.PURCHASE_ORDER, id);
+  }
+
+};
+
 const update = async (req, res, next) => {
   let data = req.body;
   let { id } = req.params;
@@ -416,6 +495,10 @@ const update = async (req, res, next) => {
       return res.json(Response.BAD_REQUEST, { message: 'Invalid Id' });
     }
     let updateData = {};
+
+    let purchaseOrderDetail = await purchaseOrderService.findOne({
+      where: { id: id, company_id: company_id }
+    });
 
     if (data.vendor_id) updateData.vendor_id = data.vendor_id;
     if (data.date) updateData.date = DateTime.DateOnly(data.date);
@@ -431,9 +514,9 @@ const update = async (req, res, next) => {
     });
     // systemLog
     res.json(Response.OK, { message: 'Purchase Order Updated' });
+
     res.on('finish', async () => {
-      //create system log for sale updation
-      History.create("Purchase Order Updated", req, ObjectName.PURCHASE_ORDER, id);
+      await createAuditLog(purchaseOrderDetail, data, req, id);
     });
   } catch (err) {
     next(err);

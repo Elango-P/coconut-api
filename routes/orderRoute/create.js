@@ -127,18 +127,21 @@ async function create(req, res, next) {
         formatedNextOrderNumber = `${nextCompanyOrderNumber}`;
       }
     }
-    let OrderTypeId = await OrderTypeService.getOrderTypeId(companyId,(body?.type == Order.TYPE_DELIVERY ?  Order.TYPE_DELIVERY : Order.TYPE_STORE))
 
 
     let accountData
     let accountExist
-    let type
-    if(Number.isNotNull(body.type)){
-      let typeIds = await AccountTypeService.getAccountTypeByCategory(body?.type,companyId)
-      type=typeIds[0]
-    }
    
     if(Number.isNotNull(body.mobile)){
+      let type
+      if(Number.isNotNull(body?.accountType)){
+        let params={
+          category: body?.accountType,
+          companyId: companyId
+        }
+        let typeIds = await AccountTypeService.getAccountTypeByCategory(params)
+        type=typeIds[0]
+      }
       accountExist = await account.findOne({
           where: {status:  Status.ACTIVE, company_id: companyId,mobile : body.mobile},
       });
@@ -151,13 +154,12 @@ async function create(req, res, next) {
           company_id: companyId,
           type: type && type,
           mobile: body.mobile,
-  
       };
   
        accountData = await account.create(createData);
       }
     }
-    let statusData =  await StatusService.getFirstStatusDetail(ObjectName.ORDER_TYPE, companyId,null,OrderTypeId)
+    let statusData =  await StatusService.getFirstStatusDetail(ObjectName.ORDER_TYPE, companyId,null,body?.type)
     const orderData = {
       store_id: storeId,
       date: new Date(),
@@ -165,21 +167,20 @@ async function create(req, res, next) {
       company_id: companyId,
       status:statusData && statusData?.id,
       owner: body?.owner?body?.owner:salesExecutiveId,
-      payment_type: body.payment_type,
+      payment_type: body?.payment_type,
       shift: Number.isNotNull(body?.shift) ? body?.shift : currendtShiftId,
       createdBy: Number.Get(userId),
       customer_phone_number:
         body &&
-        body.customer_phone_number &&
-        PhoneNumber.Get(body.customer_phone_number),
-        type: OrderTypeId && OrderTypeId[0] ,
-        customer_account: Number.isNotNull(body?.customer_account) ? body?.customer_account :accountExist ?  accountExist.dataValues.id : accountData && accountData?.id,
+        body?.customer_phone_number &&
+        PhoneNumber.Get(body?.customer_phone_number),
+        type: body?.type ? body?.type : null ,
+        customer_account: Number.isNotNull(body?.customer_account) ? body?.customer_account :Number.isNotNull(accountExist) ?  accountExist?.dataValues?.id : Number.isNotNull(accountData) ? accountData?.id: null,
       upi_amount: Currency.Get(body?.upi_amount),
       cash_amount: Currency.Get(body?.cash_amount),
     };
     const response = await orderService.create(orderData);
 
-   
     if (Number.isNull(account)) { 
         await orderModel.update({customer_account:accountData?.id},{where:{id:response?.id}})
       }

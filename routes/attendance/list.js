@@ -1,7 +1,7 @@
 const errors = require("restify-errors");
 const { sequelize, models } = require("../../db");
 const utils = require("../../lib/utils");
-const { Attendance, User, Shift, Location, Media } = models;
+const { Attendance, User, Shift, Location, Media, attendanceType } = models;
 const process = require("./process");
 const Request = require("../../lib/request");
 const { Op, Sequelize, fn, col } = require("sequelize");
@@ -70,9 +70,15 @@ async function list(req, res, next) {
   const companyId = Request.GetCompanyId(req);
   const timeZone = Request.getTimeZone(req);
 
-  const attendanceDate = data.selectedDate
-  let customDate = DateTime.getCustomDateTime(attendanceDate,timeZone)
+  const attendanceDate = data?.selectedDate || data?.date
+  let date = DateTime.getCustomDateTime(attendanceDate,timeZone)
+      
+  let FilteredDate
+  if(data?.monthYear){
+    FilteredDate =  DateTime.getCustomMonthStartEndDateTime(data?.monthYear,timeZone)
+  }
 
+  
   const attendanceWhereCondition = {};
 
   const userWhere = {};
@@ -123,16 +129,23 @@ async function list(req, res, next) {
   if (activityStatus) {
     attendanceWhereCondition.activity_status = activityStatus;
   }
-  const date = data.date;
-  if (date) {
-    attendanceWhereCondition.date = date;
+  if (data.date) {
+    attendanceWhereCondition.date = data.date;
   }
-
-  if(attendanceDate){
+  if(data?.monthYear && FilteredDate){
     attendanceWhereCondition.date = {
       [Op.and]: {
-        [Op.gte]: customDate?.startDate,
-        [Op.lte]: customDate?.endDate,
+        [Op.gte]: FilteredDate?.startDate,
+        [Op.lte]: FilteredDate?.endDate,
+      },
+    };
+  }
+
+  if(attendanceDate && date){
+    attendanceWhereCondition.date = {
+      [Op.and]: {
+        [Op.gte]: date?.startDate,
+        [Op.lte]: date?.endDate,
       },
     };
     
@@ -252,6 +265,11 @@ async function list(req, res, next) {
         required: false,
         model: Media,
         as: "media",
+      },
+      {
+        required: false,
+        model: attendanceType,
+        as: "attendanceTypeDetail",
       },
     ],
     order,

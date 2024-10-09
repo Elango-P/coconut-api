@@ -12,24 +12,27 @@ const Date = require("../../lib/dateTime");
 const Request = require("../../lib/request");
 const History = require("../../services/HistoryService");
 const ObjectName = require("../../helpers/ObjectName");
+
 async function create(req, res, next) {
   try {
     const data = req.body;
+
     let companyId = Request.GetCompanyId(req);
-    let ObjectId = req.params.id;
+
     //Validation
     const isNameExists = await ShiftService.isNameExist(data.name, companyId);
     if (isNameExists) {
       return res.send(400, { message: "shift already exist" });
     }
+
     // Create shift Data
     const createData = {
-      name: data && data.name,
-      status: data && data.status,
-      start_time: Date.GetGmtDate(data.start_time),
-      end_time: Date.GetGmtDate(data.end_time),
+      name: data && data?.name,
+      status: data && data?.status,
+      start_time: Date.GetGmtDate(data?.start_time),
+      end_time: Date.GetGmtDate(data?.end_time),
       company_id: companyId,
-      grace_period: data && data?.grace_period
+      grace_period: data && data?.grace_period ? data?.grace_period : null
     };
 
     try {
@@ -45,7 +48,7 @@ async function create(req, res, next) {
       })
     } catch (err) {
       console.log(err);
-        res.send(400, err);
+      res.send(400, err);
       next(err);
     }
   } catch (err) {

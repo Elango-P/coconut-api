@@ -1,9 +1,14 @@
 const Response = require("../../helpers/Response");
+const DateTime = require("../../lib/dateTime");
 const Request = require("../../lib/request")
 const salesSettlementMisssingReportService = require("../../services/salesSettlementMisssingReportService");
 const report = async (req, res, next) => {
     let { page, pageSize, sort, sortDir } = req.query;
     let companyId = Request.GetCompanyId(req);
+
+    let timeZone = Request.getTimeZone(req)
+
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
 
     page = page ? parseInt(page, 10) : 1;
     if (isNaN(page)) {
@@ -18,7 +23,9 @@ const report = async (req, res, next) => {
 
     let params = {
         ...req.query,
-        sendSlackNotification: false
+        sendSlackNotification: false,
+        startDate: date?.startDate,
+        endDate: date?.endDate
     }
 
     let reportList = await salesSettlementMisssingReportService.list(companyId, params);

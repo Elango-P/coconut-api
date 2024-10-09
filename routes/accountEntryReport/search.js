@@ -5,6 +5,7 @@ const { Tag, AccountEntry } = require('../../db').models;
 const DateTime = require('../../lib/dateTime');
 const Boolean = require('../../lib/Boolean');
 const validator = require('../../lib/validator');
+const Number = require("../../lib/Number");
 
 
 async function search(req, res, next) {
@@ -45,6 +46,10 @@ async function search(req, res, next) {
       return res.json(BAD_REQUEST, { message: 'Invalid sort order' });
     }
 
+
+    let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
     const where = {};
     const accountEntryWhere={}
 
@@ -81,6 +86,15 @@ async function search(req, res, next) {
         },
       };
     }
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      accountEntryWhere.date = {
+         [Op.and]: {
+           [Op.gte]: date?.startDate,
+           [Op.lte]: date?.endDate,
+         },
+       };
+     }
 
     const searchTerm = search ? search.trim() : null;
     if (searchTerm) {

@@ -19,6 +19,63 @@ const companyService = require("../../services/CompanyService");
 const SlackService = require("../../services/SlackService");
 const AttendanceService = require("../../services/AttendanceService");
 const String = require("../../lib/string");
+const AttendanceTypeService = require("../../services/AttendanceTypeService");
+
+async function createAuditLog(oldData, updatedData, req, id) {
+  let auditLogMessage = [];
+
+  const companyId = Request.GetCompanyId(req);
+
+
+  if (updatedData?.type && Number.Get(updatedData?.type) !== Number.Get(oldData?.type)) {
+    if (oldData?.type !== Number.Get(updatedData?.type)) {
+      auditLogMessage.push(`Type Changed To ${updatedData?.type}\n`);
+    }
+  }
+
+  if (updatedData?.location && Number.Get(updatedData?.location) !== Number.Get(oldData?.store_id)) {
+    if (oldData?.store_id !== updatedData?.location) {
+      let locationName = await Location.findOne({
+        where: { id: updatedData.location },
+      });
+      auditLogMessage.push(`Location Updated to ${locationName.name}\n`);
+    }
+  }
+
+  if (updatedData?.notes && updatedData?.notes !== oldData?.notes) {
+    if (oldData?.notes !== updatedData?.notes) {
+      auditLogMessage.push(`Notes Updated to ${updatedData?.notes}\n`);
+    }
+  }
+
+  if (updatedData?.shift && Number.Get(updatedData?.shift) !== Number.Get(oldData?.shift_id)) {
+    let shiftDetail = await Shift.findOne({
+      where: { id: updatedData?.shift, company_id: companyId },
+    });
+    auditLogMessage.push(`Shift Updated to ${shiftDetail.name}\n`);
+  }
+
+  if (Number.isNotNull(updatedData?.user)) {
+    if (Number.isNotNull(updatedData?.user) !== Number.Get(oldData?.user_id)) {
+      let userData = await UserService.get(updatedData?.user, companyId);
+      auditLogMessage.push(`User Updated to ${String.concatName(userData?.name, userData?.last_name)}\n`);
+    }
+  }
+
+  if (validator.isNotEmpty(updatedData?.date)) {
+    let date = DateTime.GetDate(updatedData?.date, "YYYY-MM-DD");
+    if (date && date !== oldData?.date) {
+      auditLogMessage.push(`Date Updated to ${date}\n`);
+    }
+  }
+
+  if (auditLogMessage.length > 0) {
+    let message = auditLogMessage.join('');
+    History.create(message, req, ObjectName.ATTENDANCE, id);
+  } else {
+    History.create("Attendance Updated", req, ObjectName.ATTENDANCE, id);
+  }
+};
 
 /**
  * Attendance Update
@@ -62,11 +119,26 @@ async function update(req, res, next) {
       return next(new errors.BadRequestError("User Id is required"));
     }
 
+    let isLeaveType =[]
+
+    if(data?.type){
+      let typeWhare = {
+        id: data?.type, 
+        [Op.or]: [
+          { is_leave: true },
+          { is_additional_leave: true }
+        ]
+      };
+      
+      isLeaveType = await AttendanceTypeService.getAttendanceTypeId(typeWhare);
+    }
+
+
     date = DateTime.GetDate(date, "YYYY-MM-DD");
 
     let shiftData;
 
-    if (data.type !== 'Leave' && data.type !== 'Additional Leave' && data.shift) {
+    if (!ArrayList.isArray(isLeaveType) && data.shift) {
       shiftData = await Shift.findOne({
         where: { company_id: companyId, id: data.shift },
       });
@@ -94,8 +166,8 @@ async function update(req, res, next) {
     if(attendance?.user_id){
       WhereCondition.user_id = Number.Get(attendance?.user_id)
     }
-    
-     WhereCondition.company_id = Number.Get(companyId)
+
+    WhereCondition.company_id = Number.Get(companyId)
 
     if(date){
       WhereCondition.date = date
@@ -116,9 +188,7 @@ async function update(req, res, next) {
       return next(new errors.BadRequestError("Attendance already exists"));
     }
 
-    if (data?.notes) {
       updateData.notes = data?.notes;
-    }
 
     if (data?.type) {
       updateData.type = data?.type;
@@ -134,7 +204,7 @@ async function update(req, res, next) {
         : 0;
     updateData.late_hours = DateTime.convertHoursToMinutes(late_hours);
 
-      updateData.late_hours_status = String.Get(data?.late_hours_status);
+    updateData.late_hours_status = String.Get(data?.late_hours_status);
 
     if (data?.activityStatus) {
       updateData.activity_status = data?.activityStatus;
@@ -160,7 +230,7 @@ async function update(req, res, next) {
       updateData.user_id = data?.user;
     }
 
-    if (data?.shift && data.type !== 'Leave' && data.type !== 'Additional Leave') {
+    if (data?.shift && !ArrayList.isArray(isLeaveType)) {
       updateData.shift_id = data?.shift;
     }
 
@@ -265,13 +335,14 @@ async function update(req, res, next) {
     if (!attendance.logout && data?.logout) {
       ActivityService.createCheckoutActivity(userId, companyId);
     }
-
-    // Create a system log for attendance update
-    History.create("Attendance Updated", req, ObjectName.ATTENDANCE, attendanceId);
     // Send the response message
     res.json({
       message: "Attendance Updated",
       attendanceId: attendanceDetail.get("id"),
+    });
+
+    res.on("finish", async () => {
+      await createAuditLog(attendance, data, req, attendanceId);
     });
   } catch (err) {
     return res.send(400, { message: err.message });

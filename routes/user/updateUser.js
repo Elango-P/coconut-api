@@ -22,6 +22,7 @@ const ObjectName = require("../../helpers/ObjectName");
 const Request = require("../../lib/request");
 const PhoneNumber = require("../../lib/PhoneNumber");
 const UserService = require("../../services/UserService");
+const User = require("../../helpers/User");
 const { Slack, Shift, UserRole, Location} = require("../../db").models;
 
 
@@ -146,7 +147,7 @@ async function updateUser(req, res, next) {
     const { id } = req.params;
     const imageFile = data.userImage;
     let companyId = Request.GetCompanyId(req);
-
+    
     // Validate id
     if (!id) {
       return res.json(400, { message: "User id is required" });
@@ -260,8 +261,14 @@ async function updateUser(req, res, next) {
          if(data?.rating){
            updateData.rating = data?.rating
          }
+         if(data && data?.force_logout_soft == false){          
+          updateData.force_logout = User.FORCE_LOGOUT_DISABLED;
+       } 
           if(data.status){
             updateData.status = data.status
+          };
+          if(data.force_logout_soft){
+            updateData.force_logout = data.force_logout
           };
 
           if(isNotEmpty(data.timeZone) ){

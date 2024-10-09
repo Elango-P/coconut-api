@@ -37,17 +37,17 @@ const getQuantity = (data,  productId,storeId) => {
   let quantity = 0;
   let lastStockEntryDate
   for (const product of data) {
-    
+
     if (product.store_id == storeId && product.product_id == productId) {
       quantity += Number.Get(product.quantity, 0);
       lastStockEntryDate = product?.lastStockEntryDate;
     }
   }
-  const stockdata={
-    quantity:quantity ? quantity:"",
-    lastStockEntryDate:lastStockEntryDate?lastStockEntryDate:"",
-   }
-    return stockdata ;
+  const stockdata = {
+    quantity: quantity ? quantity : "",
+    lastStockEntryDate: lastStockEntryDate ? lastStockEntryDate : "",
+  }
+  return stockdata;
 };
 const search = async (req, res) => {
   try {
@@ -78,6 +78,10 @@ const search = async (req, res) => {
 
     //get company Id from request
     const companyId = Request.GetCompanyId(req);
+
+    let timeZone = Request.getTimeZone(req);
+
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone);
 
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
@@ -206,6 +210,16 @@ const search = async (req, res) => {
         },
       };
     }
+
+    if (date && Number.isNotNull(req?.query?.date)) {
+      stockEntryWhere.date = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     let order = [];
 
     if (sort === "product_name") {
@@ -307,10 +321,10 @@ const search = async (req, res) => {
       attributes: ["product_id", "store_id", "quantity","last_stock_entry_date"],
     });
 
-    let storeProductArray=[]
-for(let i = 0;i<storeProductData.length;i++){
-  storeProductArray.push({quantity:storeProductData[i].quantity,store_id:storeProductData[i].store_id, product_id:storeProductData[i].product_id,lastStockEntryDate:storeProductData[i].last_stock_entry_date})
-}
+    let storeProductArray = []
+    for (let i = 0; i < storeProductData.length; i++) {
+      storeProductArray.push({ quantity: storeProductData[i].quantity, store_id: storeProductData[i].store_id, product_id: storeProductData[i].product_id, lastStockEntryDate: storeProductData[i].last_stock_entry_date })
+    }
 
     let storeProductMap = {};
     for (let i = 0; i < storeProductArray.length; i++) {
@@ -325,13 +339,13 @@ for(let i = 0;i<storeProductData.length;i++){
     //create stockProductEntry array
     const stockProductEntry = [];
 
-    let storeProductQuantity ;
+    let storeProductQuantity;
     for (let i = 0; i < stockProductEntryList.length; i++) {
       let value = stockProductEntryList[i];
 
-      storeProductQuantity =  storeProductMap[`${value.store_id}-${value.product_id}`];
+      storeProductQuantity = storeProductMap[`${value.store_id}-${value.product_id}`];
 
-     const data = {
+      const data = {
         id: value?.id,
         product_id: value?.product_id,
         product_name: value.productIndexList && value.productIndexList?.product_name,
@@ -353,12 +367,12 @@ for(let i = 0;i<storeProductData.length;i++){
         location_id: value.stockEntryDetail?.locationDetails?.id,
         amount: Number.GetFloat(value.productIndexList?.sale_price) * value?.quantity,
         systemQuantity: value?.system_quantity,
-        currentSystemQuantity: storeProductQuantity && storeProductQuantity?.quantity ? storeProductQuantity?.quantity:"",
+        currentSystemQuantity: storeProductQuantity && storeProductQuantity?.quantity ? storeProductQuantity?.quantity : "",
         productStatus: value && value.productIndexList && value.productIndexList.status,
         status: value.statusDetail?.name,
         statusId: value.statusDetail && value.statusDetail.id,
         statusColor: value.statusDetail?.color_code,
-        lastStockEntryDate:storeProductQuantity && storeProductQuantity?.lastStockEntryDate ? storeProductQuantity?.lastStockEntryDate:"",
+        lastStockEntryDate: storeProductQuantity && storeProductQuantity?.lastStockEntryDate ? storeProductQuantity?.lastStockEntryDate : "",
       };
 
       // formate object property
@@ -629,42 +643,42 @@ const mobileSearch = async (params, companyId) => {
     const stockProductEntry = [];
 
     if(stockProductEntryList && stockProductEntryList.rows.length>0){
-    for (let i = 0; i < stockProductEntryList.rows.length; i++) {
+      for (let i = 0; i < stockProductEntryList.rows.length; i++) {
 
-      let value = stockProductEntryList.rows[i];
+        let value = stockProductEntryList.rows[i];
 
-      const data = {
-        id: value?.id,
-        product_id: value?.product_id,
-        product_name:
-          value.productIndexList && value.productIndexList?.product_name,
-        product_display_name:
-          value.productIndexList &&
-          value.productIndexList?.product_display_name,
-        image:
-          value.productIndexList && value.productIndexList?.featured_media_url,
-        quantity: value?.quantity,
-        size: value.productIndexList && value.productIndexList?.size,
-        pack_size: value.productIndexList && value.productIndexList?.pack_size,
-        brand_name:
-          value.productIndexList && value.productIndexList?.brand_name,
-        sale_price:
-          value.productIndexList && value.productIndexList?.sale_price,
-        mrp: value.productIndexList && value.productIndexList?.mrp,
-        unit: value.productIndexList && value.productIndexList?.unit,
-        date: value?.createdAt,
-        amount:
-          Number.GetFloat(value.productIndexList?.sale_price) * value?.quantity,
-      };
+        const data = {
+          id: value?.id,
+          product_id: value?.product_id,
+          product_name:
+            value.productIndexList && value.productIndexList?.product_name,
+          product_display_name:
+            value.productIndexList &&
+            value.productIndexList?.product_display_name,
+          image:
+            value.productIndexList && value.productIndexList?.featured_media_url,
+          quantity: value?.quantity,
+          size: value.productIndexList && value.productIndexList?.size,
+          pack_size: value.productIndexList && value.productIndexList?.pack_size,
+          brand_name:
+            value.productIndexList && value.productIndexList?.brand_name,
+          sale_price:
+            value.productIndexList && value.productIndexList?.sale_price,
+          mrp: value.productIndexList && value.productIndexList?.mrp,
+          unit: value.productIndexList && value.productIndexList?.unit,
+          date: value?.createdAt,
+          amount:
+            Number.GetFloat(value.productIndexList?.sale_price) * value?.quantity,
+        };
 
-      // formate object property
-      (data.createdAt = value.createdAt), dateTime.formats.shortDateAndTime;
-      (data.updatedAt = value.updatedAt), dateTime.formats.shortDateAndTime;
+        // formate object property
+        (data.createdAt = value.createdAt), dateTime.formats.shortDateAndTime;
+        (data.updatedAt = value.updatedAt), dateTime.formats.shortDateAndTime;
 
-      stockProductEntry.push(data);
+        stockProductEntry.push(data);
+      }
     }
-  }
-  
+
     let data = {
       totalCount: stockProductEntryList.count,
       currentPage: page,

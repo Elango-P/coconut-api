@@ -28,6 +28,7 @@ const Permission = require("../../helpers/Permission");
 const ProductPriceService = require("../../services/ProductPriceService");
 const { getSettingValue } = require("../../services/SettingService");
 const { USER_DEFAULT_TIME_ZONE } = require("../../helpers/Setting");
+const Number = require("../../lib/Number");
 
 const search = async (req, res) => {
   try {
@@ -58,6 +59,10 @@ const search = async (req, res) => {
     } = req.query;
     //get company Id from request
     const companyId = Request.GetCompanyId(req);
+    
+    let timeZone = Request.getTimeZone(req);
+    let date = DateTime.getCustomDateTime(req.query?.date, timeZone)
+
 
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
@@ -89,7 +94,6 @@ const search = async (req, res) => {
     let wherePurchase = new Object();
     //append the company id
     where.company_id = companyId;
-    let timeZone = Request.getTimeZone(req);
     let start_date = DateTime.toGetISOStringWithDayStartTime(startDate);
     let end_date = DateTime.toGetISOStringWithDayEndTime(endDate);
 
@@ -159,6 +163,16 @@ const search = async (req, res) => {
         },
       };
     }
+
+    if (date && Number.isNotNull(req.query?.date)) {
+      where.createdAt = {
+        [Op.and]: {
+          [Op.gte]: date?.startDate,
+          [Op.lte]: date?.endDate,
+        },
+      };
+    }
+
     if (location) {
       wherePurchase.store_id = location;
     }
