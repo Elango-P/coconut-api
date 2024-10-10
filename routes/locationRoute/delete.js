@@ -19,12 +19,8 @@ const ObjectName = require("../../helpers/ObjectName");
  * Location delete route
  */
 async function del(req, res, next) {
-    const hasPermission = await Permission.Has(Permission.LOCATION_DELETE, req);
 
-    if (!hasPermission) {
-
-        return res.json(400, { message: "Permission Denied" });
-    }
+  
     // Validate user
     const { id } = req.params;
 

@@ -5,9 +5,6 @@ const Request = require("../../lib/request");
 const { User } = require("../../db").models;
 
 function forceLogout(req, res, next) {
-  if (!req.isAdmin) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
 
   let companyId = Request.GetCompanyId(req)
 

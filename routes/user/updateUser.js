@@ -137,11 +137,6 @@ const createAuditLog = async (oldData, updatedData, req, id) => {
 
 async function updateUser(req, res, next) {
   try {
-    //Permission Check
-    const hasPermissions = await Permission.Has(Permission.USER_EDIT, req);
-    if (!hasPermissions) {
-      return res.json(400, { message: "Permission denied" });
-    }
 
     const data = req.body;
     const { id } = req.params;

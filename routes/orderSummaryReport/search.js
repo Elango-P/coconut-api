@@ -31,11 +31,6 @@ async function search(req, res, next) {
       });
     }
 
-    const hasPermission = await Permission.Has(Permission.ORDER_REPORT_VIEW, req);
-
-    if (!hasPermission) {
-      return res.json(400, { message: 'Permission Denied' });
-    }
 
     let statusDetail = await StatusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_CANCELLED, companyId);
 

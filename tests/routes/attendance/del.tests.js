@@ -16,7 +16,6 @@ describe("Attendance - Delete", () => {
 		}
 	});
 
-	req.isAdmin = true;
 	req.params.attendanceId = 1;
 
 	it("should delete a attendance", (done) => {

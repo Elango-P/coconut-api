@@ -11,11 +11,7 @@ const Number = require("../../lib/Number");
 async function search(req, res, next) {
   try {
     //Permission Check
-    const hasPermissions = await Permission.Has(Permission.USER_VIEW, req);
-    const manageOthersPermission = await Permission.Has(Permission.USER_MANAGE_OTHERS, req);
-    if (!hasPermissions) {
-      return res.json(400, { message: "Permission denied" });
-    }
+   
 
     let { page, pageSize, search, status, sort, sortDir,  role, role_id } = req.query;
 
@@ -81,9 +77,6 @@ async function search(req, res, next) {
       whereClause += ` AND "user_index"."status" = ${status}`
     }
 
-    if(!manageOthersPermission){
-      whereClause += ` AND "user_index"."user_id" = ${userId}`
-    }
 
     if(Number.isNotNull(role) || role_id){
       whereClause += ` AND "user_index"."role_id" = ${role ? role:role_id}`

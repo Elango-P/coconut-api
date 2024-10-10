@@ -21,12 +21,8 @@ const Number = require("../../lib/Number");
  * Create tag route
  */
 async function create(req, res, next) {
-    const hasPermission = await Permission.Has(Permission.TAG_ADD, req);
  
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+ 
     const data = req.body;
 
     const companyId = Request.GetCompanyId(req);

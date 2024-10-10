@@ -34,15 +34,6 @@ async function create(req, res, next) {
       return res.json(Response.BAD_REQUEST, { message: "Company Not Found" });
     }
 
-    let rolePermission = Request.getRolePermission(req);
-
-    // order add permission check
-    const hasPermission = await Permission.GetValueByName(Permission.ORDER_ADD, rolePermission);
-
-    if (!hasPermission) {
-      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
-
 
 
     let currendtShiftId = Request.getCurrentShiftId(req);

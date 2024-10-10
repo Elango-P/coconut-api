@@ -32,14 +32,9 @@ const Number = require("../../lib/Number");
 
 const search = async (req, res) => {
   try {
-    const hasPermission = await Permission.Has(
-      Permission.PURCHASE_PRODUCT_REPORT_VIEW,
-      req
-    );
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+
+
     //destructure the params
     let {
       page,

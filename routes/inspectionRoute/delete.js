@@ -5,10 +5,6 @@ const { Inspection, CustomFieldValue } = require('../../db').models;
 
 const del = async (req, res) => {
     try {
-      const hasPermission = await Permission.Has(Permission.INSPECTION_DELETE, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
 
       // get CustomForm Id from request
       let inspectionId = req.params.id;

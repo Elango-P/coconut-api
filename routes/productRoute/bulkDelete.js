@@ -8,12 +8,8 @@ const Request = require("../../lib/request");
 const ProductService = require("../../services/ProductService");
 
 async function bulkDelete(req, res, next) {
-const hasPermission = await Permission.Has(Permission.PRODUCT_BULK_DELETE, req);
  
-   if (!hasPermission) {
- 
-     return res.json(400, { message: "Permission Denied"});
-   }
+   
     try {
         const data = req.body;
         const productIds = data.ids;

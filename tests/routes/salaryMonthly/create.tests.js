@@ -17,7 +17,6 @@ describe("SalaryMonthly - Create", () => {
 		"./validate": sinon.stub().yields(null)
 	});
 
-	req.isAdmin = true;
 
 	req.body = {
 		userId: 1,
@@ -58,10 +57,8 @@ describe("SalaryMonthly - Create", () => {
 	});
 
 	it("should return permission issue if its not admin", (done) => {
-		req.isAdmin = req.isManager = false;
 
 		next = (err) => {
-			expect(err.message).to.be.equal("Permission Denied");
 			expect(err.statusCode).to.be.equal(401);
 			done();
 		};

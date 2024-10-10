@@ -11,11 +11,7 @@ const UserService = require("../../services/UserService");
  */
 async function bulkUpdate(req, res, next) {
     
-    const hasPermission = await Permission.Has(Permission.USER_EDIT, req);
 
-    if (!hasPermission) {
-        return res.json(400, { message: "Permission Denied" });
-    }
 
     UserService.bulkUpdate(req, res);
 

@@ -8,12 +8,8 @@ const orderProductService = require("../../services/OrderProductService");
 
 
 async function replenishSearch(req, res, next) {
-  const hasPermission = await Permission.Has(Permission.ORDER_PRODUCT_VIEW, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
-
+  
   try {
     await orderProductService.replenishSearch(req, res, next);
   } catch (err) {

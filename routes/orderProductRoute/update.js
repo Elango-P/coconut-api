@@ -9,23 +9,13 @@ const Request = require("../../lib/request");
  * orderProduct create route
  */
 async function update(req, res, next) {
-   
-    const hasPermission = await Permission.Has(Permission.ORDER_PRODUCT_EDIT, req);
+  const data = req.body;
 
-    if (!hasPermission) {
+  const { id } = req.params;
 
-        return res.json(400, { message: "Permission Denied" });
-    }
+  const companyId = Request.GetCompanyId(req);
 
-    const data = req.body;
-
-    const { id } = req.params;
-
-    const companyId = Request.GetCompanyId(req);
-
-    orderProductService.update(id, data, companyId, res,req);
-
-
+  orderProductService.update(id, data, companyId, res, req);
 }
 
 module.exports = update;

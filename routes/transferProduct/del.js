@@ -7,14 +7,8 @@ const History = require("../../services/HistoryService");
 const locationProductService = require("../../services/locationProductService");
 
 async function del(req, res, next) {
-  // Validation permission exist or not.
-  const hasPermission = await Permission.GetValueByName(
-    Permission.TRANSFER_PRODUCT_DELETE,
-    req.role_permission
-  );
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+ 
+
   const transferId = req.params.transferId;
   const companyId = Request.GetCompanyId(req);
 

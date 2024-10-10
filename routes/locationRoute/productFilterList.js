@@ -19,11 +19,8 @@ const Boolean = require("../../lib/Boolean");
 
 async function productFilterList(req, res, next) {
     const { id } = req.params;
-  const hasPermission = await Permission.Has(Permission.PRODUCT_VIEW, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
   try {
     let { page, pageSize, search, sort, sortDir, pagination ,brand ,category } = req.query;
     if (sort == "name") {

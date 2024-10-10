@@ -292,12 +292,8 @@ const search = async (req, res) => {
 
     let rolePermission = Request.getRolePermission(req);
 
-    // order add permission check
-    const hasPermission = await Permission.GetValueByName(Permission.STOCK_ENTRY_VIEW, rolePermission);
 
-    if (!hasPermission) {
-      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
+  
 
     // manage other permission check
     const manageOthers = await Permission.GetValueByName(
@@ -645,12 +641,8 @@ async function get(req, res, next) {
 
 const del = async (req, res) => {
     // validate permission exiist or not
-    const hasPermission = await Permission.GetValueByName(Permission.STOCK_ENTRY_DELETE, req.role_permission);
 
-    if (!hasPermission) {
-
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
+ 
     let stockEntryId = req.params.id;
 
     try {
@@ -686,13 +678,8 @@ const del = async (req, res) => {
 }
 
 const updateStatus = async (req, res, next) => {
-    const hasPermission = await Permission.GetValueByName(Permission.STOCK_ENTRY_STATUS_UPDATE, req.role_permission);
 
-    if (!hasPermission) {
-
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
-
+  
     const data = req.body;
     const { id } = req.params;
 
