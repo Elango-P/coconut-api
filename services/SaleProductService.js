@@ -333,14 +333,8 @@ const del = async (req, res) => {
 };
 
 const updateStatus = async (req, res, next) => {
-  const hasPermission = await Permission.Has(
-    Permission.SALE_SETTLEMENT_STATUS_UPDATE,
-    req
-  );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+ 
 
   const data = req.body;
   const { id } = req.params;

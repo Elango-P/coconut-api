@@ -8,12 +8,7 @@ const { SaleSettlement } = require("../../db").models;
 const service = require("../../services/LocationService");
 
 async function search (req, res, next){
-    const hasPermission = await Permission.Has(Permission.LOCATION_VIEW, req);
- 
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+
     const params = req.query;
     let companyId = req.user && req.user.company_id;
     const where = {};

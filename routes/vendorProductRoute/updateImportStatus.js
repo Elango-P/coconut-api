@@ -14,14 +14,9 @@ const { vendor_product } = require("../../db").models;
  * Update vendor products import status
  */
 async function updateImportStatus(req, res, next) {
-  const hasPermission = await Permission.Has(
-    Permission.SUPPLIER_PRODUCT_UPDATE_IMPORT_STATUS,
-    req
-  );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
+
   const { importStatus } = req.params;
   const companyId = req.user.company_id;
   try {

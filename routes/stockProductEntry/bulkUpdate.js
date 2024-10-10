@@ -11,14 +11,8 @@ const StoreProductService = require('../../service/storeProductService')
 const bulkInsert = async (req, res) => {
 
     try {
-        // Validate Permissions exist or not.
-        const hasPermission = await Permission.GetValueByName(
-            Permission.STOCK_ENTRY_STATUS_UPDATE,
-            req.role_permission
-        );
-        if (!hasPermission) {
-            return res.json(400, { message: "Permission Denied" });
-        }
+
+ 
 
         //get company Id from request
         const companyId = Request.GetCompanyId(req);

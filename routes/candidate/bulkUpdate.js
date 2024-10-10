@@ -25,9 +25,7 @@ function bulkUpdate(req, res, next) {
     );
   }
 
-  if (!req.isAdmin && !req.isManager) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
+
 
   if (!candidateId) {
     return next(new errors.BadRequestError("Candidate id is required"));

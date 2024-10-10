@@ -57,10 +57,7 @@ class BillService {
     const company_id = Request.GetCompanyId(req);
 
     try {
-      const hasPermission = await Permission.Has(Permission.BILL_ADD, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+     
       let data = req.body;
       let query = {
         order: [["createdAt", "DESC"]],
@@ -687,9 +684,6 @@ class BillService {
   static async update(req, res, next) {
     try {
       const hasPermission = await Permission.Has(Permission.BILL_EDIT, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
       const id = req.params.id;
     let roleId = Request.getUserRole(req);
 
@@ -926,10 +920,7 @@ class BillService {
   // delete
   static async del(req, res) {
     try {
-      const hasPermission = await Permission.Has(Permission.BILL_DELETE, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+      
       const id = req.params.id;
       const company_id = Request.GetCompanyId(req);
 

@@ -14,30 +14,7 @@ async function create(req, res, next) {
       return res.json(Response.BAD_REQUEST, { message: "Company Not Found" });
     }
 
-    let rolePermission = Request.getRolePermission(req);
 
-    // order add permission check
-    const hasPermission = await Permission.GetValueByName(Permission.STOCK_ENTRY_ADD, rolePermission);
-
-    if (!hasPermission) {
-      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
-
-    // manage other permission check
-    const manageOthers = await Permission.GetValueByName(
-      Permission.STOCK_ENTRY_MANAGE_OTHERS,
-      rolePermission
-    );
-
-    if (!manageOthers) {
-      let lastCheckIn = Request.getCurrentLocationId(req);
-
-      if (!lastCheckIn) {
-        return res.json(Response.BAD_REQUEST, {
-          message: "Check-in record is missing",
-        });
-      }
-    }
 
     let currentShiftId = req?.user?.current_shift_id
     let body = req.body;

@@ -15,12 +15,7 @@ const Request = require("../../lib/request");
  * Brand delete route by brand id
  */
 async function del(req, res, next) {
-    const hasPermission = await Permission.Has(Permission.BRAND_DELETE, req);
- 
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+
     const { id } = req.params;
     let company_id = Request.GetCompanyId(req);
 

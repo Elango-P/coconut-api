@@ -109,10 +109,9 @@ module.exports = (req, res, next) => {
     user = user.get();
 
     req.user = user;
-    req.isAdmin = user.role === roles.ADMIN;
-    req.isManager = user.role === roles.MANAGER;
-    req.isScrumMaster = user.role === roles.SCRUM_MASTER;
-    req.isSuperAdmin = user.role === roles.SUPER_ADMIN;
+    // req.isManager = user.role === roles.MANAGER;
+    // req.isScrumMaster = user.role === roles.SCRUM_MASTER;
+    // req.isSuperAdmin = user.role === roles.SUPER_ADMIN;
     return next();
   });
 };

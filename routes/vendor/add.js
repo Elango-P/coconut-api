@@ -22,9 +22,7 @@ function add(req, res, next) {
   if (!data) {
     return cb();
   }
-  if (!req.isAdmin && !req.isManager) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
+
 
   if (!data.name) {
     return next(new errors.BadRequestError("name is required"));

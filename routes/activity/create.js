@@ -8,12 +8,8 @@ const activityService = require("../../services/ActivityService");
  * Create Activity Type route
  */
 async function create(req, res, next) {
-  const hasPermission = await Permission.Has(Permission.ACTIVITY_ADD, req);
 
-  if (!hasPermission) {
-
-      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-  }
+ 
   const company_id = Request.GetCompanyId(req);
      let userId = Request.getUserId(req);
      let currentLocationId = Request.getCurrentLocationId(req);

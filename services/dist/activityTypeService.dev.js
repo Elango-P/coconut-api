@@ -40,9 +40,7 @@ let create = function create(req, res, next) {
             break;
           }
 
-          return _context.abrupt("return", res.json(400, {
-            message: "Permission Denied"
-          }));
+          
 
         case 5:
           data = req.body; // Validate name

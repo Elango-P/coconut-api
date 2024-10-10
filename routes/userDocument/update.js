@@ -7,9 +7,6 @@ function update(req, res, next) {
   const data = req.body;
   const userDocumentId = req.params.userDocumentId;
 
-  if (!req.isAdmin) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
 
   UserDocument.update(
     {

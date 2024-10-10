@@ -19,7 +19,6 @@ describe("Account Entry - Add", () => {
 		}
 	});
 
-	req.isAdmin = true;
 
 	const body = {
 		date: "2017-11-21 12:32:12",

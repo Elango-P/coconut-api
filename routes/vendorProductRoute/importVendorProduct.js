@@ -20,14 +20,9 @@ const ObjectName = require("../../helpers/ObjectName");
  * Vendor product import route
  */
 async function importVendorProduct(req, res, next) {
-  const hasPermission = await Permission.Has(
-    Permission.SUPPLIER_PRODUCT_IMPORT_VENDOR_PRODUCT,
-    req
-  );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
+ 
   const { url } = req.query;
 
   const companyId = req.user.company_id;

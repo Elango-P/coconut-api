@@ -19,12 +19,7 @@ const Request = require("../../lib/request");
  * Tag update route
  */
 async function update(req, res, next) {
-    const hasPermission = await Permission.Has(Permission.TAG_EDIT, req);
 
-    if (!hasPermission) {
-
-        return res.json(400, { message: "Permission Denied" });
-    }
     const data = req.body;
     const { id } = req.params;
     const name = data?.name;

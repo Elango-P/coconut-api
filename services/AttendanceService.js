@@ -972,13 +972,8 @@ const attendanceService = (module.exports = {
   AttendanceDelete: async function (ids, req, res) {
     try {
       const companyId = Request.GetCompanyId(req);
-      const hasPermission = await Permission.Has(
-        Permission.ATTENDANCE_DELETE,
-        req
-      );
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+    
+    
 
       // If ids is not an array, convert it to an array
       if (!Array.isArray(ids)) {

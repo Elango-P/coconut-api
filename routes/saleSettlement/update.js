@@ -20,11 +20,7 @@ const LocationService = require("../../services/LocationService");
 const Response = require("../../helpers/Response");
 
 async function update(req, res, next) {
-  const hasPermission = await Permission.Has(Permission.SALE_SETTLEMENT_EDIT, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
 
   let data = req.body;
   let { id } = req.params;

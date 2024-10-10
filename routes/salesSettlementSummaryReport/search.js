@@ -14,13 +14,7 @@ const Request = require("../../lib/request");
 const Numbers = require("../../lib/Number");
 
 async function search(req, res, next) {
-  const hasPermission = await Permission.Has(Permission.SALES_SETTLEMENT_REPORT_VIEW, req);
 
-  if (!hasPermission) {
-    return res.json(400, {
-      message: 'Permission Denied',
-    });
-  }
   let companyId = req.user && req.user.company_id;
 
   let timeZone = Request.getTimeZone(req)

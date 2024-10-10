@@ -11,10 +11,7 @@ async function create(req, res, next) {
         const data = req.body;
         const companyId = Request.GetCompanyId(req);
          data.timeZone = Request.getTimeZone(req);
-        const hasPermission = await Permission.Has(Permission.SALARY_ADD, req);
-        if (!hasPermission) {
-          return res.json(400, { message: "Permission Denied" });
-        }
+   
           let response = await SalaryService.create(data, companyId)
         // systemLog
         if(response){

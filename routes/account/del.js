@@ -8,10 +8,7 @@ const AccountService = require("../../services/AccountService")
  async function del(req, res, next){
     const hasPermission = await Permission.Has(Permission.ACCOUNT_DELETE, req);
  
-    if (!hasPermission) {
   
-      return res.json(400, { message: "Permission Denied"});
-    }
     try{
         
         AccountService.del(req, res,next)

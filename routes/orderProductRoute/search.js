@@ -9,11 +9,6 @@ const Request = require("../../lib/request");
 
 
 async function search(req, res, next) {
-  const hasPermission = await Permission.GetValueByName(Permission.ORDER_PRODUCT_VIEW, req.role_permission);
-
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
 
 
 

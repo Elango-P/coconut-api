@@ -10,12 +10,7 @@ const AccountService = require("../../services/AccountService")
  * Create vendor route
  */
 async function createEmployee(req, res, next) {
-    const hasPermission = await Permission.Has(Permission.VENDOR_ADD, req);
-
-    if (!hasPermission) {
-
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
+   
     try {
 
         AccountService.create(req, res, next)
