@@ -14,7 +14,10 @@ const ObjectHelper = require("../../helpers/ObjectHelper");
 const Numbers = require("../../lib/Number");
 async function list(req, res, next) {
   try {
-   
+    const hasPermission = await Permission.Has(Permission.ORDER_PRODUCT_REPORT_VIEW, req);
+    if (!hasPermission) {
+      return res.json(400, { message: 'Permission Denied' });
+    }
     const params = req.query;
     let companyId = req.user && req.user.company_id;
     let { page, pageSize, search, sort, sortDir, pagination, status, location, startDate, endDate, brand, category, account ,product,startTime,endTime, showTotal} =

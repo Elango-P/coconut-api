@@ -198,8 +198,10 @@ describe("Account Entry - Update", () => {
 	});
 
 	it("should return Authorization Error when the not admin", (done) => {
+		req.isAdmin = false;
 
 		next = (error) => {
+			expect(error.message).to.be.equal("Permission Denied");
 			expect(error.statusCode).to.be.equal(401);
 			done();
 		};

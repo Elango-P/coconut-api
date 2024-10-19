@@ -85,8 +85,11 @@ module.exports = {
   },
   //search product list
   async search(req, res, next) {
+    const hasPermission = await Permission.Has(Permission.BRAND_VIEW, req);
 
- 
+    if (!hasPermission) {
+      return res.json(400, { message: "Permission Denied" });
+    }
     let { page, pageSize, search, sort, sortDir, pagination, categoryName, categoryId } = req.query;
 
 

@@ -23,7 +23,9 @@ function add(req, res, next) {
   if (!categoryName) {
     return cb();
   }
-
+  if (!req.isAdmin && !req.isManager) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   if (!categoryName) {
     return next(new errors.BadRequestError("Category name is required"));

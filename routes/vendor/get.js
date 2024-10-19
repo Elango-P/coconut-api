@@ -8,7 +8,9 @@ const vendorDetails = require("./processList");
 function get(req, res, next) {
   const id = req.params.id;
 
-  
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
   AccountVendor.findOne({
     where: { id },
   })

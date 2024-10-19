@@ -4,8 +4,11 @@ const StockReportService = require('../../services/StockReportService');
 
 async function search(req, res, next) {
   try {
+    const hasPermission = await Permission.Has(Permission.STOCK_REPORT_VIEW, req);
 
-  
+    if (!hasPermission) {
+      return res.json(Response.BAD_REQUEST, { message: 'Permission Denied' });
+    }
     const params = req.query;
 
     let companyId = req.user && req.user.company_id;

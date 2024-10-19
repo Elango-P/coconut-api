@@ -32,8 +32,14 @@ const ObjectName = require("../../helpers/ObjectName");
  * Product create route
  */
 async function exportToProduct(req, res, next) {
+  const hasPermission = await Permission.Has(
+    Permission.SUPPLIER_PRODUCT_EXPORT_TO_PRODUCT,
+    req
+  );
 
- 
+  if (!hasPermission) {
+    return res.json(400, { message: "Permission Denied" });
+  }
 
   const data = req.body;
   

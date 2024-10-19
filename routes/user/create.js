@@ -19,10 +19,15 @@ const Account = require("../../helpers/Account");
 const Status = require("../../helpers/Status");
 const { UserEmployment, account } = require("../../db").models;
 const { userService } = require("../../services/UserService");
+const Number = require("../../lib/Number");
 
 async function create(req, res, next) {
   try {
-  
+    //Permission Check
+    const hasPermissions = await Permission.Has(Permission.USER_ADD, req);
+    if (!hasPermissions) {
+      return res.json(400, { message: "Permission denied" });
+    }
 
     const data = req.body;
 
@@ -38,14 +43,17 @@ async function create(req, res, next) {
 
     const defaultTimeZone = await getSettingValue(USER_DEFAULT_TIME_ZONE, companyId);
 
-    const existingUserDetail = await userService.findOne({
-      where: {
-        mobile_number1: PhoneNumber.Get(data.mobileNumber), company_id: companyId
-      }
-    });
+    if (Number.isNotNull(data?.mobileNumber )){
 
-    if (existingUserDetail) {
-      return res.json(400, { message: "User with this mobile number already exists" });
+      const existingUserDetail = await userService.findOne({
+        where: {
+          mobile_number1: PhoneNumber.Get(data?.mobileNumber), company_id: companyId
+        }
+      });
+    
+      if (existingUserDetail) {
+        return res.json(400, { message: "User with this mobile number already exists" });
+      }
     }
 
     userData.company_id = companyId;

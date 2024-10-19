@@ -6,7 +6,9 @@ const csv = require("fast-csv");
 const { SalaryMonthly } = require("../../db").models;
 
 function importList(req, res, next) {
-
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   const file = req.files.file;
 

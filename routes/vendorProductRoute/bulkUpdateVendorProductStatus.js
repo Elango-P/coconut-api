@@ -16,8 +16,14 @@ const Permission = require("../../helpers/Permission");
  * Update vendor products route
  */
 async function bulkUpdateVendorProduct(req, res, next) {
+  const hasPermission = await Permission.Has(
+    Permission.SUPPLIER_PRODUCT_BULK_UPDATE_STATUS,
+    req
+  );
 
-
+  if (!hasPermission) {
+    return res.json(400, { message: "Permission Denied" });
+  }
   const { ids, status } = req.body;
   try {
     const companyId = req.user.company_id;

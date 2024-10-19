@@ -6,7 +6,9 @@ const { Payroll } = require("../../db").models;
 function del(req, res, next) {
   const payRollId = req.params.id;
 
-
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   if (!validator.isInteger(payRollId)) {
     return next(new errors.BadRequestError("Invalid Payroll Page"));

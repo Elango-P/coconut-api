@@ -31,6 +31,10 @@ async function search(req, res, next) {
   }
 
   try {
+    const hasPermission = await Permission.Has(Permission.ORDER_PRODUCT_GRAPH_REPORTS_VIEW, req);
+    if (!hasPermission) {
+      return res.json(400, { message: "Permission Denied" });
+    }
 
     const orderWhere = {};
     const locationWhere = {};

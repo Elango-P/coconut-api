@@ -26,8 +26,12 @@ const productService = require("../../services/ProductService");
  * Product delete route by product id
  */
 async function del(req, res, next) {
+    const hasPermission = await Permission.Has(Permission.PRODUCT_DELETE, req);
  
-   
+   if (!hasPermission) {
+ 
+     return res.json(400, { message: "Permission Denied"});
+   }
    await productService._delete(req, res, next)
 }
 module.exports = del;

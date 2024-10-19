@@ -6,7 +6,10 @@ const { hasPermission } = require("../../services/UserRolePermissionService");
 async function updatePortal(req, res, next) {
   try {
     //Permission Check
-   
+    const hasPermissions = await hasPermission(Permission.PORTAL_UPDATE, req);
+    if (!hasPermissions) {
+      return res.json(400, { message: "Permission denied" });
+    }
 
     const data = req.body;
     const { id } = req.params;

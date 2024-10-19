@@ -15,8 +15,14 @@ const History = require("../../services/HistoryService");
 const create = async (req, res) => {
 
   try {
-
-
+    // Validate Permissions exist or not.
+    const hasPermission = await Permission.GetValueByName(
+      Permission.TRANSFER_PRODUCT_ADD,
+      req.role_permission
+    );
+    if (!hasPermission) {
+      return res.json(400, { message: "Permission Denied" });
+    }
 
     //get company Id from request
     let body = req.body;

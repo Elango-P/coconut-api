@@ -27,7 +27,7 @@ if (config.port == Https.PORT) {
   // };
 
   server = restify.createServer(options, {
-    name: "coconut-api",
+    name: "oneportal-api",
   });
 
   // server.addContext('portal-api.thidiff.com', options2);
@@ -35,10 +35,9 @@ if (config.port == Https.PORT) {
 
 } else {
   server = restify.createServer({
-    name: "coconut-api",
+    name: "oneportal-api",
   });
 }
-console.log("server--------",server);
 
 server.use(restify.plugins.gzipResponse());
 server.use(
@@ -47,11 +46,8 @@ server.use(
   })
 );
 server.use(restify.plugins.queryParser());
-console.log("server---2-----",server);
 
 server.use((req, res, next) => {
-console.log("req--------",req);
-
   if ((req.method === "PUT" || req.method === "POST") && !req.body) {
     req.body = {};
   }
@@ -64,14 +60,11 @@ const cors = corsMiddleware({
   credentials: false,
   allowHeaders: ["authorization", "API-Token"],
 });
-console.log("cors--------",cors);
 
 server.pre(cors.preflight);
 server.use(cors.actual);
 
 server.on("MethodNotAllowed", (req, res) => {
-console.log("serverreq--------",req);
-
   if (req.method.toUpperCase() === "OPTIONS") {
     res.header(
       "Access-Control-Allow-Headers",
@@ -83,7 +76,6 @@ console.log("serverreq--------",req);
     res.send({ message: "methodNotAllowed" });
   }
 });
-console.log("server----final----",server);
 
 db.connect((err) => {
   if (err) {
@@ -92,21 +84,18 @@ db.connect((err) => {
   }
   server.db = db;
 
-console.log("server.db--------",server.db);
-
-
   routes(server);
 
   server.listen(config.port, () => {
     console.log(
-      `coconut API Service listening on port ${config.port} in ${config.environment} mode`
+      `OnePortal API Service listening on port ${config.port} in ${config.environment} mode`
     );
   });
 });
 
 process.on("SIGTERM", () => {
   gracefulShutdown((err) => {
-    console.log("Shutting the coconut API Service down...");
+    console.log("Shutting the OnePortal API Service down...");
     server.close();
     process.exit(err ? 1 : 0)
   });

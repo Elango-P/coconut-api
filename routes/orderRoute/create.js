@@ -26,12 +26,23 @@ const AccountTypeService = require("../../services/AccountTypeService");
 const UserService = require("../../services/UserService");
 const SlackService = require("../../services/SlackService");
 const DateTime = require("../../lib/dateTime");
+const { OrderTypeGroup } = require("../../helpers/OrderTypeGroup");
 async function create(req, res, next) {
   try {
     const companyId = Request.GetCompanyId(req);
+    const timeZone = Request.getTimeZone(req);
    let locationId = Request.getCurrentLocationId(req)
     if (!companyId) {
       return res.json(Response.BAD_REQUEST, { message: "Company Not Found" });
+    }
+
+    let rolePermission = Request.getRolePermission(req);
+
+    // order add permission check
+    const hasPermission = await Permission.GetValueByName(Permission.ORDER_ADD, rolePermission);
+
+    if (!hasPermission) {
+      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
     }
 
 
@@ -170,6 +181,15 @@ async function create(req, res, next) {
       upi_amount: Currency.Get(body?.upi_amount),
       cash_amount: Currency.Get(body?.cash_amount),
     };
+    
+    let getOrderTypeDetail = await OrderTypeService.get(orderData?.type, companyId);
+
+    if(Number.isNotNull(getOrderTypeDetail) && Number.isNotNull(getOrderTypeDetail?.delivery_time) && getOrderTypeDetail?.allow_delivery == OrderTypeGroup.ENABLE_DELIVERY_ORDER && !DateTime.isValidDate(body?.delivery_date) ){
+     orderData.delivery_date = DateTime.addDateTimeToGraceTime(orderData?.date, getOrderTypeDetail?.delivery_time, timeZone)
+    }else{
+      orderData.delivery_date = body?.delivery_date ? body?.delivery_date : null
+    }
+
     const response = await orderService.create(orderData);
 
     if (Number.isNull(account)) { 

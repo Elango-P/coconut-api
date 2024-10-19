@@ -15,8 +15,12 @@ const Boolean = require("../lib/Boolean");
 const ActivityTypeGroup = require("../helpers/ActivityTypeGroup");
 
 const create = async (req, res, next) => {
+  const hasPermission = await Permission.Has(Permission.ACTIVITY_TYPE_ADD, req);
 
+  if (!hasPermission) {
 
+    return res.json(400, { message: "Permission Denied" });
+  }
   const data = req.body;
   // Validate name
   if (!data.name) {
@@ -129,8 +133,12 @@ const create = async (req, res, next) => {
 }
 
 const del = async (req, res, next) => {
+  const hasPermission = await Permission.Has(Permission.ACTIVITY_TYPE_DELETE, req);
 
+  if (!hasPermission) {
 
+    return res.json(400, { message: "Permission Denied" });
+  }
 
   let companyId = Request.GetCompanyId(req)
   try {
@@ -171,8 +179,12 @@ const del = async (req, res, next) => {
   }
 }
 const update = async (req, res, next) => {
+  const hasPermission = await Permission.Has(Permission.ACTIVITY_TYPE_EDIT, req);
 
- 
+  if (!hasPermission) {
+
+    return res.json(400, { message: "Permission Denied" });
+  }
   let companyId = Request.GetCompanyId(req)
   try {
     const data = req.body;

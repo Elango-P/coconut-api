@@ -379,7 +379,11 @@ class UserDeviceInfoService {
   static async statusUpdate(req, res) {
     try {
       const companyId = Request.GetCompanyId(req);
-   
+      const hasPermission = await Permission.Has(Permission.DEVICE_INFO_STATUS_UPDATE, req);
+      if (!hasPermission) {
+        return res.json(400, { message: 'Permission Denied' });
+      }
+
       const data = req.body;
       const { id } = req.params;
 

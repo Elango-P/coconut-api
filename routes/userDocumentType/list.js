@@ -4,7 +4,9 @@ const errors = require("restify-errors");
 const { UserDocumentType } = require("../../db").models;
 
 function list(req, res, next) {
-
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
   UserDocumentType.findAll({
     attributes: ["document_type"],
     order: [["document_type", "ASC"]],

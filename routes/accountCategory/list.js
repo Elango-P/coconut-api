@@ -19,7 +19,9 @@ const DateTime = require("../../lib/dateTime");
 const dateTime = new DateTime();
 
 function list(req, res, next) {
-  
+  if (!req.isAdmin && !req.isManager) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   const data = req.query;
   let page = 1;

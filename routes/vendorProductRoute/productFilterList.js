@@ -33,8 +33,11 @@ const Permission = require("../../helpers/Permission");
 const Response = require("../../helpers/Response");
 
 async function productFilterList(req, res, next) {
+  const hasPermission = await Permission.Has(Permission.PRODUCT_VIEW, req);
 
-
+  if (!hasPermission) {
+    return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
+  }
   try {
     let { page, pageSize, search, sort, sortDir, pagination, category, brand, id } = req.query;
     if (sort == 'name') {

@@ -10,8 +10,11 @@ const Request = require("../../lib/request");
 async function search(req, res, next) {
   try {
     //Permission Check
+    const hasPermission = await Permission.Has(Permission.COMPANY_VIEW, req);
     let userDefaultTimeZone = Request.getTimeZone(req);
-    
+    if (!hasPermission) {
+      return res.json(400, { message: "Permission denied" });
+    }
 
     let { page, pageSize, search, sort, sortDir, pagination, status } =
       req.query;

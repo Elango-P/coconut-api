@@ -14,7 +14,12 @@ const CountryService = require("../../services/CountryService");
  * Customer create route
  */
  async function create (req, res, next){
-
+    const hasPermission = await Permission.Has(Permission.COUNTRY_EDIT, req);
+ 
+    if (!hasPermission) {
+  
+      return res.json(400, { message: "Permission Denied"});
+    }
    await CountryService.stateCreate(req, res) 
 };
 module.exports = create;

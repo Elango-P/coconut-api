@@ -7,7 +7,9 @@ const validator = require("../../lib/validator");
 const { SalaryMonthly } = require("../../db").models;
 
 function del(req, res, next) {
-
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   const salaryId = req.params.salaryId;
   if (!validator.isInteger(salaryId)) {

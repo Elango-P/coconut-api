@@ -20,7 +20,10 @@ const { AccountEntry } = require("../../db").models;
  * Customer update route
  */
 async function update(req, res, next) {
-    
+    const hasPermission = await Permission.Has(Permission.ACCOUNT_ENTRY_EDIT, req);
+    if (!hasPermission) {
+      return res.json(400, { message: "Permission Denied" });
+    }
 
 
     AccountEntryService.update(req, res, next)

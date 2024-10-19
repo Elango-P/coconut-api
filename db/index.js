@@ -3,14 +3,11 @@ const config = require("../lib/config").database;
 
 const db = {};
 
-db.connection = new Sequelize(`${config.databaseUrl}?sslmode=disable`, {
+db.connection = new Sequelize(config.databaseUrl, {
 	dialect: 'postgres',
 	dialectOptions: {
-		ssl: {
-		  require: false, // Ensure SSL is not required
-		  rejectUnauthorized: false // Bypass SSL validation
-		}
-	  }, 
+		ssl: config.ssl || false
+	},  
 	pool: {
 		max: config.poolMax,
 		min: config.poolMin,

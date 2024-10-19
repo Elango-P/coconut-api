@@ -13,7 +13,11 @@ const Boolean = require("../lib/Boolean");
 
 
 const create = async (req, res, next) => {
+  const hasPermission = await Permission.Has(Permission.PAYMENT_ACCOUNT_ADD, req);
 
+  if (!hasPermission) {
+    return res.json(400, { message: "Permission Denied" });
+  }
   
   let object_id = "";
 
@@ -60,8 +64,11 @@ const create = async (req, res, next) => {
 };
 
 const del = async (req, res, next) => {
+    const hasPermission = await Permission.Has(Permission.PAYMENT_ACCOUNT_DELETE, req);
 
-   
+    if (!hasPermission) {
+        return res.json(400, { message: "Permission Denied" });
+    }
     
     const id = req.params.id;
     const company_id = Request.GetCompanyId(req);
@@ -143,8 +150,11 @@ const get = async (req, res, next) => {
 }
 
 const update = async (req, res, next) => {
+  const hasPermission = await Permission.Has(Permission.PAYMENT_ACCOUNT_EDIT, req);
 
-  
+  if (!hasPermission) {
+    return res.json(400, { message: "Permission Denied" });
+  }
 
   let { id } = req.params;
 
@@ -195,8 +205,11 @@ const update = async (req, res, next) => {
 }
 
 const search = async (req, res, next) => {
+    const hasPermission = await Permission.Has(Permission.PAYMENT_ACCOUNT_VIEW, req);
 
-  
+    if (!hasPermission) {
+        return res.json(400, { message: "Permission Denied" });
+    }
     try {
         let { page, pageSize, search, sort, sortDir,primary,pagination } = req.query;
         const company_id = Request.GetCompanyId(req);

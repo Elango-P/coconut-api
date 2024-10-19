@@ -5,7 +5,11 @@ const async = require("async");
 const Permission = require("../../helpers/Permission");
 
 async function saveSystemSetting(name, value, callback) {
+  const hasPermission = await Permission.Has(Permission.FEATURE_ADD, req);
 
+  if (!hasPermission) {
+    return res.json(400, { message: "Permission Denied" });
+  }
   try {
     const settingData = {
       name: name,

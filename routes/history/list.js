@@ -21,6 +21,12 @@ const { USER_DEFAULT_TIME_ZONE } = require("../../helpers/Setting");
  * system log search route
  */
 async function search(req, res, next) {
+    const hasPermission = await Permission.Has(Permission.HISTORY, req);
+
+    if (!hasPermission) {
+
+        return res.json(400, { message: "Permission Denied" });
+    }
     let { page, pageSize, search, sort, sortDir, pagination, objectName, objectId, user, date, startDate, endDate } = req.query;
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;

@@ -6,7 +6,9 @@ const { AccountCategory } = require("../../db").models;
 function del(req, res, next) {
   const accountCategoryId = req.params.id;
 
- 
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   AccountCategory.findOne({
     attributes: ["id"],

@@ -416,9 +416,12 @@ const bulkDelete = async (req, res) => {
  */
 
 async function update(req, res, next) {
+  const hasPermission = await Permission.Has(Permission.TICKET_EDIT, req);
   const company_id = Request.GetCompanyId(req);
   const roleId = Request.getUserRole(req);
- 
+  if (!hasPermission) {
+    return res.json(400, { message: "Permission Denied" });
+  }
   const data = req.body;
   const { id } = req.params;
   const summary = data.summary;

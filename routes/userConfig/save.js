@@ -29,7 +29,9 @@ function saveConfig(user_id, name, value, callback) {
 }
 
 function save(req, res, next) {
-
+  if (!req.isAdmin && !req.isManager) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   const { id } = req.params;
   if (!validator.isInteger(id)) {

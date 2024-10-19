@@ -15,8 +15,12 @@ const Request = require("../../lib/request");
  * Tag delete route by tag Id
  */
 async function del(req, res, next) {
+    // const hasPermission = await Permission.Has(Permission.TAG_DELETE, req);
  
-   
+    // if (!hasPermission) {
+  
+    //   return res.json(400, { message: "Permission Denied"});
+    // }
     let company_id = Request.GetCompanyId(req)
     try {
         const { id } = req.params;

@@ -7,7 +7,9 @@ const { AccountVendor } = require("../../db").models;
 function del(req, res, next) {
   const vendorId = req.params.id;
 
-
+  if (!req.isAdmin) {
+    return next(new errors.UnauthorizedError("Permission Denied"));
+  }
 
   AccountVendor.findOne({
     attributes: ["id"],

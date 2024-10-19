@@ -13,6 +13,11 @@ const { isKeyAvailable } = require("../../lib/validator");
 
 async function update(req, res, next) {
   try {
+    const hasPermission = await Permission.Has(Permission.SCHEDULER_JOBS_EDIT, req);
+
+    if (!hasPermission) {
+      return res.json(400, { message: "Permission Denied" });
+    }
 
     const company_id = Request.GetCompanyId(req);
     const data = req.body;
