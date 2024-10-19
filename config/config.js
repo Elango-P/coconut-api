@@ -10,7 +10,6 @@ const dbConnectionData = {
             "require": false,
             "rejectUnauthorized": false,
         },
-        connectTimeout: 60000,
       },
 };
 console.log("dbConnectionData----------",dbConnectionData);
