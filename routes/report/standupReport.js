@@ -42,9 +42,7 @@ function getProjectTicketTypesByType(type, callback) {
 function dailyReports(req, res, next) {
   const data = req.query;
 
-  if (!req.isAdmin && !req.isManager) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
+ 
 
   const todayDate = utils.getSQlFormattedDate();
   const date = data.weekdaysDate;

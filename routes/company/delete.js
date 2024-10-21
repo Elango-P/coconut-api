@@ -10,9 +10,7 @@ const ObjectName = require("../../helpers/ObjectName");
 async function Delete(req, res, next) {
   try {
     const hasPermissions = await Permission.Has(Permission.COMPANY_DELETE, req);
-    if (!hasPermissions) {
-      return res.json(400, { message: "Permission denied" });
-    }
+  
 
     const id = parseInt(req.params.id, 10);
 

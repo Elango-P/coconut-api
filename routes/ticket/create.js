@@ -13,9 +13,7 @@ const { Media: MediaModal} = require('../../db').models;
 
 const create = async (req, res) => {
   const hasPermission = await Permission.Has(Permission.TICKET_ADD, req);
-  if (!hasPermission) {
-    return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-  }
+ 
   const company_id = Request.GetCompanyId(req);
   try{
   let data = await ticketService.create(req, res);

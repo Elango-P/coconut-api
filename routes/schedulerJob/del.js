@@ -10,10 +10,7 @@ async function del(req, res, next) {
   
   const hasPermission = await Permission.Has(Permission.SCHEDULER_JOBS_DELETE, req);
  
-  if (!hasPermission) {
-
-    return res.json(400, { message: "Permission Denied"});
-  }
+  
   const id = req.params.id;
   const company_id = Request.GetCompanyId(req);
 

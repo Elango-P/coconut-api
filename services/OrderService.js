@@ -1431,10 +1431,7 @@ const del = async (req, res) => {
   //validate permission exiist or not
   const hasPermission = await Permission.GetValueByName(Permission.ORDER_DELETE, rolePermission);
 
-  if (!hasPermission) {
 
-    return res.json(400, { message: "Permission Denied" });
-  }
   try {
     //get company Id from request
     let orderId = req.params.id;

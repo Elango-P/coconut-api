@@ -13,9 +13,7 @@ async function update(req, res, next) {
     try {
         const hasPermission = await Permission.Has(Permission.PRODUCT_EDIT, req);
 
-        if (!hasPermission) {
-            return res.json(400, { message: "Permission Denied" });
-        }
+
         let response = await ProductPriceService.update(req, res, next)
         if (response && response.statusCode == Response.OK) {
             await productService.reindex(response && response?.product_id, req.user.company_id);

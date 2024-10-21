@@ -40,9 +40,7 @@ class paymentService {
   static async create(req, res) {
     try {
       const hasPermission = await Permission.Has(Permission.PAYMENT_ADD, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+
       let data = req.body;
       const companyId = Request.GetCompanyId(req);
       let totalBillNetAmount;
@@ -178,9 +176,7 @@ class paymentService {
         Permission.PAYMENT_DELETE,
         req
       );
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+
       const id = req.params.id;
       const company_id = Request.GetCompanyId(req);
 
@@ -264,9 +260,7 @@ class paymentService {
     let roleId = Request.getUserRole(req);
     try {
       const hasPermission = await Permission.Has(Permission.PAYMENT_EDIT, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+    
       const companyId = Request.GetCompanyId(req);
       if (!id) {
         return res.json(BAD_REQUEST, { message: 'Payment id is required' });

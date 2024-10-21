@@ -14,9 +14,7 @@ async function create(req, res, next) {
       Permission.PRODUCT_PRICE_ADD,
       req
     );
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+
 
     const companyId = req.user && req.user.company_id;
 

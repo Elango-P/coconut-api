@@ -37,9 +37,7 @@ const ArrayList = require("../../lib/ArrayList");
 async function add(req, res, next) {
   const hasPermission = await Permission.Has(Permission.ATTENDANCE_ADD, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
 
   const data = req.body;
   const companyId = Request.GetCompanyId(req);

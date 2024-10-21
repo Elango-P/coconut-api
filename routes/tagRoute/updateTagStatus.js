@@ -14,10 +14,7 @@ const Request = require("../../lib/request");
 async function updateTagStatus (req, res, next) {
     const hasPermission = await Permission.Has(Permission.TAG_STATUS_UPDATE, req);
  
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+
     try {
         const data = req.body;
         const { id } = req.params;

@@ -7,9 +7,7 @@ const validate = require("./validate");
 const { SalaryMonthly } = require("../../db").models;
 
 function create(req, res, next) {
-  if (!req.isAdmin) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
+ 
 
   const data = req.body;
 

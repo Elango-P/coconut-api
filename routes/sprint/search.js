@@ -18,9 +18,7 @@ const Response = require("../../helpers/Response");
  */
 async function search(req, res, next) {
   const hasPermission = await Permission.Has(Permission.SPRINT_VIEW, req);
-  if (!hasPermission) {
-    return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-  }
+ 
   await  sprintService.search(req,res,next);
 }
 module.exports = search;

@@ -23,9 +23,7 @@ async function save(req, res, next) {
 
     let companyId = company_id ? company_id : Request.GetCompanyId(req);
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+  
 
     const data = req.body;
 

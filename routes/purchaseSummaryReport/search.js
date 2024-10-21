@@ -9,9 +9,7 @@ async function search(req, res, next) {
 
     const hasPermission = await Permission.Has(Permission.PURCHASE_REPORT_VENDOR_WISE_VIEW, req);
 
-    if (!hasPermission) {
-      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
+
     let params =  req.query
 
     const companyId = Request.GetCompanyId(req);

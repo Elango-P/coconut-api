@@ -8,9 +8,7 @@ async function list(req, res, next) {
     Permission.SCHEDULER_JOBS_VIEW,
     req
   );
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
   schedulerService.search(req, res,next);
     
     

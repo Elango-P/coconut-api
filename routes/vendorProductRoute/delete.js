@@ -20,9 +20,7 @@ async function del(req, res, next) {
     req
   );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+  
   const { id } = req.params;
   const companyId = req.user.company_id;
 

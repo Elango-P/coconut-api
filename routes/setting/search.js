@@ -8,9 +8,7 @@ const { settingService } = require("../../services/SettingService");
 async function search(req, res, next) {
   const hasPermission = await Permission.Has(Permission.FEATURE_VIEW, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+  
   try {
     settingService
       .findAndCount({ where: { company_id: null } })

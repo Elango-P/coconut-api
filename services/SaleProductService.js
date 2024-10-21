@@ -338,9 +338,6 @@ const updateStatus = async (req, res, next) => {
     req
   );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
 
   const data = req.body;
   const { id } = req.params;

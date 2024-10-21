@@ -15,9 +15,7 @@ const list = async (req, res, next) => {
   try {
     const hasPermission = await Permission.Has(Permission.STORE_PRODUCT_NO_ORDER_REPORT_VIEW, req);
 
-    if (!hasPermission) {
-      return res.json(400, { message: 'Permission Denied' });
-    }
+  
     const params = req.query;
 
     let companyId = req.user && req.user.company_id;

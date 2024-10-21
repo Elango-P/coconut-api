@@ -35,14 +35,8 @@ let create = function create(req, res, next) {
         case 2:
           hasPermission = _context.sent;
 
-          if (hasPermission) {
-            _context.next = 5;
-            break;
-          }
-
-          return _context.abrupt("return", res.json(400, {
-            message: "Permission Denied"
-          }));
+       
+          
 
         case 5:
           data = req.body; // Validate name

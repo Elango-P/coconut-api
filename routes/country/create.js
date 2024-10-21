@@ -16,10 +16,7 @@ const CountryService = require("../../services/CountryService");
  async function create (req, res, next){
     const hasPermission = await Permission.Has(Permission.COUNTRY_ADD, req);
  
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+
    await CountryService.create(req, res) 
 };
 module.exports = create;

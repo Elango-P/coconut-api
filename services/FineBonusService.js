@@ -42,9 +42,7 @@ class fineService {
           let data = req.body;
             if((req && req?.user && !data?.company_id)){
             const hasPermission = await Permission.Has(Permission.FINE_ADD, req);
-             if (!hasPermission) {
-                 return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-             }
+
             }
 
             let companyId;
@@ -96,9 +94,7 @@ class fineService {
     static async del(req, res) {
         try {
             const hasPermission = await Permission.Has(Permission.FINE_DELETE, req);
-        if (!hasPermission) {
-            return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-        }
+
             const id = req.params.id;
             const company_id = Request.GetCompanyId(req);
 
@@ -167,9 +163,7 @@ class fineService {
     static async update(req, res) {
         try {
             const hasPermission = await Permission.Has(Permission.FINE_EDIT, req);
-            if (!hasPermission) {
-                return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-            }
+
             const companyId = Request.GetCompanyId(req);
             const { id } = req.params;
             const data = req.body;
@@ -567,9 +561,7 @@ class fineService {
   static async bulkupdate(req, res) {
     try {
       const hasPermission = await Permission.Has(Permission.FINE_EDIT, req);
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+
       const companyId = Request.GetCompanyId(req);
       const data = req.body;
 

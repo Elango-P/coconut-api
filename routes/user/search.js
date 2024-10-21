@@ -13,9 +13,7 @@ async function search(req, res, next) {
     //Permission Check
     const hasPermissions = await Permission.Has(Permission.USER_VIEW, req);
     const manageOthersPermission = await Permission.Has(Permission.USER_MANAGE_OTHERS, req);
-    if (!hasPermissions) {
-      return res.json(400, { message: "Permission denied" });
-    }
+   
 
     let { page, pageSize, search, status, sort, sortDir,  role, role_id } = req.query;
 

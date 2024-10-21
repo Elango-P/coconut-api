@@ -18,9 +18,7 @@ async function updateStatus(req, res, next) {
   try {
     const hasPermission = await Permission.Has(Permission.TRANSFER_STATUS, req);
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+   
 
     let id = req.body && req.body.id;
 

@@ -89,9 +89,7 @@ async function update(req, res, next) {
   try {
     const hasPermission = await Permission.Has(Permission.ATTENDANCE_EDIT, req);
 
-    if (!hasPermission) {
-      return res.send(400, { message: "Permission Denied" });
-    }
+
 
     const attendanceId = req.params.attendanceId;
 

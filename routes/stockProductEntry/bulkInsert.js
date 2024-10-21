@@ -15,9 +15,7 @@ const bulkInsert = async (req, res) => {
             Permission.STOCK_PRODUCT_ENTRY_ADD,
             req
         );
-        if (!hasPermission) {
-            return res.json(400, { message: "Permission Denied" });
-        }
+        
 
         //get company Id from request
         let body = req.body;

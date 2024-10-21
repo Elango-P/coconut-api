@@ -47,9 +47,7 @@ const createAuditLog = async (oldData, updatedData, req, id) => {
 async function update(req, res, next) {
   const hasPermission = await Permission.Has(Permission.BRAND_EDIT, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+ 
 
   const companyId = Request.GetCompanyId(req);
   const { name, status, manufacture_name, manufacture_id } = req.body;

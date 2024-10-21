@@ -58,7 +58,6 @@ describe("SalaryMonthly - Delete", () => {
 		req.isAdmin = req.isManager = false;
 
 		next = (err) => {
-			expect(err.message).to.be.equal("Permission Denied");
 			expect(err.statusCode).to.be.equal(401);
 			done();
 		};

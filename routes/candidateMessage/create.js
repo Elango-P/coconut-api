@@ -5,9 +5,6 @@ const { CandidateMessage } = require("../../db").models;
 const projectService = require("../../services/project");
 
 function create(req, res, next) {
-  if (!req.isAdmin && !req.isManager) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
 
   const data = req.body;
 

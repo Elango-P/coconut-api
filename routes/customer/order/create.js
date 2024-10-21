@@ -25,9 +25,6 @@ async function create(req, res, next) {
   try {
     const hasPermission = await Permission.Has(Permission.ORDER_ADD, req);
 
-    if (!hasPermission) {
-      return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-    }
     const body = req.body;
 
     const companyId = Request.GetCompanyId(req);

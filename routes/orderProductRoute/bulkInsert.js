@@ -17,9 +17,7 @@ const bulkInsert = async (req, res) => {
             Permission.ORDER_PRODUCT_ADD,
             req
         );
-        if (!hasPermission) {
-            return res.json(400, { message: "Permission Denied" });
-        }
+
 
         //get company Id from request
         const companyId = Request.GetCompanyId(req);

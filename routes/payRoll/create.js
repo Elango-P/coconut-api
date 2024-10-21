@@ -12,9 +12,7 @@ function payrollIsExists(user_id, month, year, callback) {
   });
 }
 function create(req, res, next) {
-  if (!req.isAdmin) {
-    return next(new errors.UnauthorizedError("Permission Denied"));
-  }
+
   const { userId, month, year } = req.body;
 
   payrollIsExists(userId, month, year, (err) => {

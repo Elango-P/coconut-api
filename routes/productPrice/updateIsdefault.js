@@ -12,9 +12,7 @@ async function updateIsDefault(req, res, next) {
 
     const hasPermission = await Permission.Has(Permission.PRODUCT_EDIT, req);
 
-    if (!hasPermission) {
-        return res.json(Response.OK, { message: "Permission Denied" });
-    }
+
     let response =  await ProductPriceService.updateIsDefaultPrice(req,res,next)
     if (response && response.statusCode == Response.OK) {
         await productService.reindex(response && response?.product_id, req.user.company_id);

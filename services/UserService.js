@@ -778,41 +778,16 @@ async  AddStartdateAndEnddateFromAttendance(
 		  });
 		  return false;
 		}
-		data.companyId = companyId
-
 		let rolePermission = Request.getRolePermission(req);
 
-		if(individualPermision){
-			const hasPermission = await Permission.GetValueByName(
-				individualPermision,
-				rolePermission
-			  );
-			  if (!hasPermission) {
-				res.json(Response.BAD_REQUEST, {
-				  message: "Permission Denied",
-				});
-				return false;
-			  }
-		}
+		data.companyId = companyId
 		
+		const manageOthers = await Permission.GetValueByName(
+			manageOther,
+			rolePermission
+		  )
+		  data.manageOthers=manageOthers
 
-		if(manageOther){
-			const manageOthers = await Permission.GetValueByName(
-				manageOther,
-				rolePermission
-			  )
-			  if (!manageOthers) {
-				let lastCheckIn = Request.getCurrentLocationId(req);
-				if (!lastCheckIn) {
-				  res.json(Response.BAD_REQUEST, {
-					message: "Check-in record is missing",
-				  });
-				  return false;
-				}
-			  }
-			  data.manageOthers=manageOthers
-		}
-		
 		return data;
 	}catch(err){
 		console.log(err);

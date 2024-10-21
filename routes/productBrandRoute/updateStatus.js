@@ -22,10 +22,7 @@ const Request = require("../../lib/request");
 async function updateStatus(req, res, next) {
     const hasPermission = await Permission.Has(Permission.BRAND_STATUS_UPDATE, req);
 
-    if (!hasPermission) {
 
-        return res.json(400, { message: "Permission Denied" });
-    }
 
     let company_id = Request.GetCompanyId(req);
     const data = req.body;

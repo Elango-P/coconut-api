@@ -44,9 +44,6 @@ const create = async (req, res, next) => {
 
   let permission = manageOthers ? false : (hasPermission && currentLocationId) ? false : true;
 
-  if (permission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
   let historyMessage = new Array();
 
   const currentShift = Request.getCurrentShiftId(req);
@@ -368,11 +365,6 @@ const create = async (req, res, next) => {
 const del = async (req, res, next) => {
   const hasPermission = await Permission.Has(Permission.SALE_SETTLEMENT_DELETE, req);
 
-  if (!hasPermission) {
-    return res.json(400, {
-      message: "Permission Denied"
-    });
-  }
   const id = req.params.id;
   const object = Object.SALE_SETTLEMENT;
   const object_id = id;
@@ -537,9 +529,7 @@ const search = async (req, res, next) => {
 
   let permission = viewPermission ? false : (hasPermission && currentLocationId) ? false : true;
 
-  if (permission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
 
   try {
     let {
@@ -966,11 +956,7 @@ const getTotalAmount = async (params) =>{
 const update = async (req, res, next) => {
   const hasPermission = await Permission.Has(Permission.SALE_SETTLEMENT_EDIT, req);
 
-  if (!hasPermission) {
-    return res.json(400, {
-      message: "Permission Denied",
-    });
-  }
+
 
   let data = req.body;
   let { id } = req.params;
@@ -1078,11 +1064,7 @@ const update = async (req, res, next) => {
 const updateByStatus = async (req, res, next) => {
   const hasPermission = await Permission.Has(Permission.SALE_SETTLEMENT_STATUS_UPDATE, req);
   let companyId = Request.GetCompanyId(req);
-  if (!hasPermission) {
-    return res.json(400, {
-      message: "Permission Denied",
-    });
-  }
+
 
   let data = req.body;
 

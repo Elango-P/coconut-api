@@ -17,10 +17,7 @@ const History = require("../../services/HistoryService");
 async function importOrder(req, res, next) {
     const hasPermission = await Permission.Has(Permission.ORDER_IMPORT, req);
  
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+
     const storeId = req.params.storeId;
 
     try {

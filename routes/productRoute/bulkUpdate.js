@@ -34,10 +34,7 @@ async function bulkUpdate(req, res, next) {
 
     const companyId = Request.GetCompanyId(req);
 
-    if (!hasPermission) {
 
-        return res.json(400, { message: "Permission Denied" });
-    }
     try {
         const data = req.body;
         const productIds = data.ids;

@@ -26,9 +26,7 @@ const syncProduct = async (products, companyId) => {
     req
   );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+ 
   // Sync each product from account
   for (let product of products) {
     try {

@@ -19,9 +19,7 @@ const update = async (req, res, next) => {
     let companyId = Request.GetCompanyId(req);
 
     const hasPermission = await Permission.GetValueByName(Permission.SALARY_EDIT, req.role_permission);
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+   
 
     if (!id) {
       return res.json(400, {

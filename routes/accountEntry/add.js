@@ -11,9 +11,7 @@ const Permission = require("../../helpers/Permission");
 async function add(req, res, next) {
     const hasPermission = await Permission.Has(Permission.ACCOUNT_ENTRY_ADD, req);
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+  
     AccountEntryService.create(req, res, next)
 }
 module.exports = add;

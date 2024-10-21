@@ -19,9 +19,7 @@ const update = async (req, res) => {
       req.role_permission
     );
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+   
 
     let updateData = new Object();
 

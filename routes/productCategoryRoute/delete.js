@@ -18,10 +18,7 @@ const Request = require("../../lib/request");
 async function del(req, res, next) {
     const hasPermission = await Permission.Has(Permission.PRODUCT_CATEGORY_DELETE, req);
  
-    if (!hasPermission) {
-  
-      return res.json(400, { message: "Permission Denied"});
-    }
+
     const { id } = req.params;
 
     let company_id = Request.GetCompanyId(req);

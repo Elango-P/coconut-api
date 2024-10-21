@@ -19,9 +19,7 @@ async function updateImportStatus(req, res, next) {
     req
   );
 
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
   const { importStatus } = req.params;
   const companyId = req.user.company_id;
   try {

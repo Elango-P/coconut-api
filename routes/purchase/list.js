@@ -9,7 +9,6 @@ const Request = require("../../lib/request");
 async function list(req, res, next) {
   try{
     const validation = await UserService.validatePermissions(req, res,Permission.PURCHASE_VIEW,Permission.PURCHASE_MANAGE_OTHERS);
-    if (!validation) return;
   
     const { companyId, manageOthers } = validation;
   req.query.companyId = companyId

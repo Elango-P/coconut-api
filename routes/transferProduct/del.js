@@ -12,9 +12,7 @@ async function del(req, res, next) {
     Permission.TRANSFER_PRODUCT_DELETE,
     req.role_permission
   );
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+
   const transferId = req.params.transferId;
   const companyId = Request.GetCompanyId(req);
 

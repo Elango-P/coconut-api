@@ -25,9 +25,7 @@ const validator = require("../../lib/validator")
 async function search(req, res, next) {
   const hasPermission = await Permission.Has(Permission.TAG_VIEW, req);
 
-  if (!hasPermission) {
-    return res.json(400, { message: 'Permission Denied' });
-  }
+ 
   let { page, pageSize, search, sort, sortDir, pagination, type } = req.query;
 
   // Validate if page is not a number

@@ -9,9 +9,7 @@ const ticketService = require("../../services/TicketService");
  
 async function getPendingTicket(req, res, next) {
   const hasPermission = await Permission.Has(Permission.TICKET_VIEW, req);
-  if (!hasPermission) {
-    return res.json(400, { message: "Permission Denied" });
-  }
+  
 
   const manageOtherPermission = await Permission.Has(
     Permission.TICKET_MANAGE_OTHERS,

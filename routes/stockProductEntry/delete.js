@@ -19,10 +19,7 @@ const del = async (req, res) => {
         //validate permission exiist or not
         const hasPermission = await Permission.GetValueByName(Permission.STOCK_PRODUCT_ENTRY_DELETE, req.role_permission);
  
-        if (!hasPermission) {
-      
-          return res.json(400, { message: "Permission Denied"});
-        }
+
 
         //get stock product entry Id
 

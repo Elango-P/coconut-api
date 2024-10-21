@@ -25,10 +25,7 @@ async function create(req, res, next) {
   try {
     //Permission Check
     const hasPermissions = await Permission.Has(Permission.USER_ADD, req);
-    if (!hasPermissions) {
-      return res.json(400, { message: "Permission denied" });
-    }
-
+ 
     const data = req.body;
 
     let userData = {};

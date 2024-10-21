@@ -10,9 +10,7 @@ async function updateOwner(req, res, next) {
     try {
         const hasPermission = await Permission.Has(Permission.REPLENISHMENT_MANAGE_OTHERS, req);
 
-        if (!hasPermission) {
-            return res.json(400, { message: "Permission Denied" });
-        }
+       
         
         let companyId = Request.GetCompanyId(req);
 

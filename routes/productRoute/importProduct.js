@@ -24,10 +24,7 @@ const ObjectName = require("../../helpers/ObjectName");
 async function importProduct(req, res, next) {
     const hasPermission = await Permission.Has(Permission.PRODUCT_ADD, req);
 
-    if (!hasPermission) {
 
-        return res.json(400, { message: "Permission Denied" });
-    }
     const { url } = req.query;
     const companyId = Request.GetCompanyId(req);
     try {

@@ -10,9 +10,7 @@ async function deleteUser(req, res, next) {
   try {
     //Permission Check
     const hasPermissions = await Permission.Has(Permission.USER_DELETE, req);
-    if (!hasPermissions) {
-      return res.json(400, { message: "Permission denied" });
-    }
+  
 let companyId = Request.GetCompanyId(req);
     const id = parseInt(req.params.id, 10);
 

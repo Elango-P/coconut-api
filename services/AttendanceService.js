@@ -977,9 +977,7 @@ const attendanceService = (module.exports = {
         Permission.ATTENDANCE_DELETE,
         req
       );
-      if (!hasPermission) {
-        return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-      }
+
 
       // If ids is not an array, convert it to an array
       if (!Array.isArray(ids)) {

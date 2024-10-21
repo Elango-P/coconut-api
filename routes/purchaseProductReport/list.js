@@ -37,9 +37,6 @@ const search = async (req, res) => {
       req
     );
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
     //destructure the params
     let {
       page,

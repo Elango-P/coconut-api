@@ -30,11 +30,7 @@ async function search(req, res, next) {
 
   try {
     const hasPermission = await Permission.Has(Permission.ORDER_REPORT_VIEW, req);
-  
-          if (!hasPermission) {
-  
-              return res.json(400, { message: "Permission Denied" });
-          }
+
     let data = await OrderReportUserWiseService.searchUser(params, companyId);
 
     const orderWhere = {};

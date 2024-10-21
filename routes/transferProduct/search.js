@@ -48,25 +48,13 @@ const search = async (req, res) => {
         // order add permission check
         const hasPermission = await Permission.GetValueByName(Permission.TRANSFER_VIEW, rolePermission);
       
-        if (!hasPermission) {
-          return res.json(Response.BAD_REQUEST, { message: "Permission Denied" });
-        }
-      
+
         // manage other permission check
         const manageOthers = await Permission.GetValueByName(
           Permission.TRANSFER_MANAGE_OTHERS,
           rolePermission
         );
       
-        if (!manageOthers) {
-          let lastCheckIn = Request.getCurrentLocationId(req);
-      
-          if (!lastCheckIn) {
-            return res.json(Response.BAD_REQUEST, {
-              message: "Check-in record is missing",
-            });
-          }
-        }
 
         // Validate if page is not a number
         page = page ? parseInt(page, 10) : 1;

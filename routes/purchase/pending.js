@@ -12,7 +12,6 @@ const UserService = require("../../services/UserService");
 
 async function pending(req, res, next) {
   const validation = await UserService.validatePermissions(req, res,Permission.PURCHASE_VIEW,Permission.PURCHASE_MANAGE_OTHERS);
-  if (!validation) return;
 
   const { companyId, manageOthers } = validation;
   let userId = Request.getUserId(req)

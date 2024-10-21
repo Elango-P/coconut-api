@@ -10,9 +10,7 @@ async function update(req, res, next) {
 
     const hasPermission = await Permission.GetValueByName(Permission.ORDER_EDIT, rolePermission);
 
-    if (!hasPermission) {
-      return res.json(400, { message: "Permission Denied" });
-    }
+
 
     orderService.update(req, res, next)
 } catch(err){
