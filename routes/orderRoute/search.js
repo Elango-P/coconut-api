@@ -16,16 +16,6 @@ const Response = require("../../helpers/Response");
       return res.json(Response.BAD_REQUEST, { message: "Company Not Found" });
     }
 
-    let rolePermission = Request.getRolePermission(req);
-
-    // order add permission check
-    const hasPermission = await Permission.GetValueByName(Permission.ORDER_VIEW, rolePermission);
-
-
-
-   
-    params.currentShift = Request.getCurrentShiftId(req);
-
     try {
         const data = await orderService.searchOrder(params,req);
         res.json(data);

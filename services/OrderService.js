@@ -189,13 +189,9 @@ const searchOrder = async (params, req) => {
       endDate,
       paymentType,
       orderId,
-      customer_phone_number,
       showTotalAmount,
       orderDate,
-      currentShift,
       currentLocation,
-      isStoreOrder,
-      isDeliveryOrder
     } = params;
     // Validate if page is not a number
     page = page ? parseInt(page, 10) : 1;
@@ -209,21 +205,8 @@ const searchOrder = async (params, req) => {
     if (isNaN(pageSize)) {
       throw { message: "Invalid page size" };
     }
-
-    let type = params && params?.type ? params?.type:null
-
-    let orderTypeList
-
     
-    if(isStoreOrder == OrderTypeGroup.ENABLE_STORE_ORDER){
-      orderTypeList = await OrderTypeService.list({},companyId,{allow_store_order:isStoreOrder})
-      type = orderTypeList && orderTypeList.length >0 ? orderTypeList.map((value=>value.id)):[]
-    }
-    
-    if(isDeliveryOrder == OrderTypeGroup.ENABLE_DELIVERY_ORDER){
-      orderTypeList = await OrderTypeService.list({},companyId,{allow_delivery:isDeliveryOrder})
-      type = orderTypeList && orderTypeList.length >0 ? orderTypeList.map((value=>value.id)):[]
-    }
+   
     // Sortable Fields
     const validOrder = ["ASC", "DESC"];
     const sortableFields = {
@@ -283,9 +266,7 @@ const searchOrder = async (params, req) => {
       where.id = orderId;
     }
 
-    if(Number.isNotNull(type)){
-      where.type =type
-    }
+  
 
     if (status) {
       where.status = status
@@ -318,10 +299,7 @@ const searchOrder = async (params, req) => {
       where.shift = shift
     }
     if (Number.isNotNull(orderDate || req?.query?.date)) {
-      if (type == Order.TYPE_STORE && !hasOrderManageOthersPermission) {
-
-        where.shift = currentShift;
-      }
+     
       if (date && Number.isNotNull(date)) {
         where.date = {
           [Op.and]: {
@@ -369,26 +347,8 @@ const searchOrder = async (params, req) => {
 
     whereLocation.company_id = companyId
 
-    let statusDetail = await statusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_DRAFT, companyId,{object_id:type});
+    let statusDetail = await statusService.Get(ObjectName.ORDER_TYPE, Status.GROUP_DRAFT, companyId);
 
-    if (statusDetail && statusDetail?.id) {
-      where[Op.or] = [
-        {
-          status: {
-            [Op.ne]: statusDetail?.id // Status is not "draft"
-          }
-        },
-        {
-          status: statusDetail?.id, // Status is "draft"
-          total_amount: {
-            [Op.and]: [
-              { [Op.ne]: 0 },    // Not equal to 0
-              { [Op.ne]: null }  // Not equal to null
-            ]
-          }
-        }
-      ];
-    }
     const searchTerm = search ? search.trim() : null;
     if (searchTerm) {
       if (searchTerm && isNaN(parseFloat(searchTerm))) {
@@ -505,7 +465,6 @@ const searchOrder = async (params, req) => {
       status: status,
       shift: where?.shift,
       paymentType: paymentType,
-      type: type,
       searchTerm: searchTerm,
       timeZone: timeZone
     }
@@ -531,11 +490,6 @@ const searchOrder = async (params, req) => {
     if (orders.count === 0) {
       return [];
     }
-
-
-
-
-
 
     const orderData = [];
     const ordersRows = orders.rows; // Store the rows in a separate variable for better performance
