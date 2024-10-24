@@ -170,7 +170,7 @@ async function create(req, res, next) {
       ObjectName.ORDER_TYPE,
       companyId,
       null,
-      body?.type
+      1
     );
     const orderData = {
       store_id: storeId,
@@ -186,7 +186,7 @@ async function create(req, res, next) {
         body &&
         body?.customer_phone_number &&
         PhoneNumber.Get(body?.customer_phone_number),
-      type: body?.type ? body?.type : null,
+      type: 1,
       customer_account: Number.isNotNull(body?.customer_account)
         ? body?.customer_account
         : Number.isNotNull(accountExist)
