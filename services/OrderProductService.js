@@ -6,6 +6,7 @@ const {
   status: statusModel,
   storeProduct,
   ProductPrice,
+  product
 } = require('../db').models;
 
 const DateTime = require('../lib/dateTime');
@@ -38,10 +39,8 @@ const validator = require('.././lib/validator');
 const db = require('../db');
 const Permission = require('../helpers/Permission');
 const ProductService = require("./services/ProductService");
-const { getSettingValue } = require("./SettingService");
-const { USER_DEFAULT_TIME_ZONE } = require("../helpers/Setting");
+
 const Currency = require("../lib/currency");
-const orderModel = new DataBaseService(order);
 
 /**
  * Create order products
@@ -183,7 +182,16 @@ const create = async (body, req, res) => {
         createData.taxable_amount = Numbers.GetFloat(sale_price) - (Numbers.GetFloat(createData.sgst_amount) + Numbers.GetFloat(createData.sgst_amount))
         // create order product
         let orderProductDetail = await orderProduct.create(createData);
+        if(orderProductDetail && orderProductDetail?.id){
+          let productData = await product.findOne({where:{id:productId,company_id:companyId}})
 
+          let updateQty = Numbers.Get(productData?.min_quantity)- Numbers.Get(orderProductDetail?.quantity)
+
+         await product.update({min_quantity:updateQty},{where:{id:productId,company_id:companyId}})
+
+         await productIndex.update({min_quantity:updateQty},{where:{product_id:productId,company_id:companyId}})
+
+        }
         res.json(CREATE_SUCCESS, {
           message: 'Order Product Added',
           orderProductId: orderProductDetail ? orderProductDetail.id : "",
@@ -204,39 +212,6 @@ const create = async (body, req, res) => {
           }
         })
       }
-    } else if (selectedProducts && selectedProducts.length > 0) {
-      selectedProducts.forEach(async (product) => {
-        let isOrderProductExist = await orderProduct.findOne({
-          where: { company_id: companyId, product_id: product.id, order_id: orderId},
-        });
-        let orderProductPrice = product?.manual_price ? product?.manual_price:product?.sale_price
-  
-        if (!isOrderProductExist) {
-          const createData = {
-            product_id: product.product_id,
-            company_id: companyId,
-            quantity: product.selectedQuantity ? product.selectedQuantity : product.quantity,
-            order_id: orderId,
-            order_date: orderDetail?.date,
-            order_number: orderDetail?.order_number,
-            status: await statusService.getFirstStatus(ObjectName.ORDER_PRODUCT, companyId),
-            price: Numbers.GetFloat(orderProductPrice),
-
-
-          };
-          let orderProductDetail = await orderProduct.create(createData);
-          await updateOrderQuantity(orderId,companyId);
-          if (orderProductDetail) {
-            History.create("Order Product Added", req, ObjectName.ORDER, orderId);
-          }
-          res.json(CREATE_SUCCESS, {
-            message: 'Order Product Added',
-            orderProductId: orderProductDetail ? orderProductDetail.id : "",
-
-          });
-        }
-      });
-
     } else if (productIds) {
       //get the product Ids
       let productIdsList = productIds.split(',');
@@ -278,6 +253,15 @@ const create = async (body, req, res) => {
 
             //create the order product
             const detail = await orderProduct.create(createData);
+            if(detail && detail?.id){
+              let productData = await product.findOne({where:{id:productId,company_id:companyId}})
+
+              let updateQty = Numbers.Get(productData?.min_quantity)- Numbers.Get(detail?.quantity)
+
+             await product.update({min_quantity:updateQty},{where:{id:productId,company_id:companyId}})
+
+             await productIndex.update({min_quantity:updateQty},{where:{product_id:productId,company_id:companyId}})
+            }
 
             let totalAmount = await orderProductModal.sum('price', {
               where: { order_id: Numbers.Get(orderId), company_id: companyId, status:{ [Op.notIn]: excludeCancelledStatusIdsArray} },
@@ -342,8 +326,7 @@ const update = async (id, data, companyId, res, req) => {
     let historyMessage = []
     if (data.quantity || data.quantity == "") {
       orderProductUpdateData.quantity = data.quantity ? data.quantity : null;
-      orderProductUpdateData.quantity = data.quantity ? data.quantity : null;
-
+    
       orderProductUpdateData.reward = Numbers.Multiply(getProductDetail?.reward, data.quantity)
       historyMessage.push(
         `Product #${product_id} quantity changed to ${data?.quantity} quantity\n`);
@@ -376,6 +359,14 @@ const update = async (id, data, companyId, res, req) => {
     });
 
     if (productDetail && productDetail.length > 0) {
+        let productData = await product.findOne({where:{id:product_id,company_id:companyId}})
+
+        let updateQty = Numbers.Get(productData?.min_quantity)- (Numbers.Get(data?.quantity)- orderProductDetails?.quantity )
+
+       await product.update({min_quantity:updateQty},{where:{id:product_id,company_id:companyId}})
+
+       await productIndex.update({min_quantity:updateQty},{where:{product_id:product_id,company_id:companyId}})
+
       await updateOrderQuantity(data.orderId, companyId);
     }
 
@@ -403,6 +394,10 @@ const update = async (id, data, companyId, res, req) => {
 const search = async (req, res, next) => {
   try {
     const companyId = Request.GetCompanyId(req);
+    let permission = Request.getRolePermission(req)
+    const hasPermission = await Permission.GetValueByName(Permission.ORDER_PRODUCT_EDIT, permission);
+
+    console.debug("hasPermission--------------->>>", hasPermission)
 
     const params = req.query;
 
@@ -927,7 +922,7 @@ const search = async (req, res, next) => {
         locationName: orderProductItem.locationDetails?.name,
         amount: orderProductItem.price,
         status: orderProductItem.statusDetail && orderProductItem.statusDetail?.name,
-        allowEdit: orderProductItem.statusDetail && orderProductItem.statusDetail?.allow_edit,
+        allowEdit: hasPermission,
         colourCode: orderProductItem.statusDetail && orderProductItem.statusDetail?.color_code,
         statusId: orderProductItem.status,
         cost_price: orderProductItem.cost_price ? orderProductItem.cost_price : '',
@@ -938,7 +933,7 @@ const search = async (req, res, next) => {
         cgst_amount: orderProductItem.cgst_amount,
         cancelledAt: orderProductItem.cancelled_at,
         order_number: orderProductItem.order_number ? orderProductItem.order_number : "",
-        allowCancel: orderProductItem.statusDetail && orderProductItem.statusDetail?.allow_cancel == Status.ALLOW_CANCEL ? true : false,
+        allowCancel: false,
         manual_price: orderProductItem.manual_price,
         reason: orderProductItem.reason,
       });

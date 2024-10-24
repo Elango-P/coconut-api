@@ -18,19 +18,10 @@ const { Location, account, order: orderModel } = require("../../db").models;
 const PhoneNumber = require("../../lib/PhoneNumber");
 const LocationService = require("../../services/LocationService");
 const Response = require("../../helpers/Response");
-const { CATEGORY_CUSTOMER } = require("../../helpers/Account");
-const Status = require("../../helpers/Status");
 const history = require("../../services/HistoryService");
-const OrderTypeService = require("../../services/OrderTypeService");
-const AccountTypeService = require("../../services/AccountTypeService");
-const UserService = require("../../services/UserService");
-const SlackService = require("../../services/SlackService");
-const DateTime = require("../../lib/dateTime");
-const { OrderTypeGroup } = require("../../helpers/OrderTypeGroup");
 async function create(req, res, next) {
   try {
     const companyId = Request.GetCompanyId(req);
-    const timeZone = Request.getTimeZone(req);
     let locationId = Request.getCurrentLocationId(req);
     if (!companyId) {
       return res.json(Response.BAD_REQUEST, { message: "Company Not Found" });
@@ -132,46 +123,13 @@ async function create(req, res, next) {
       }
     }
 
-    let accountData;
-    let accountExist;
-
-    if (Number.isNotNull(body.mobile)) {
-      let type;
-      if (Number.isNotNull(body?.accountType)) {
-        let params = {
-          category: body?.accountType,
-          companyId: companyId,
-        };
-        let typeIds = await AccountTypeService.getAccountTypeByCategory(params);
-        type = typeIds[0];
-      }
-      accountExist = await account.findOne({
-        where: {
-          status: Status.ACTIVE,
-          company_id: companyId,
-          mobile: body.mobile,
-        },
-      });
-      if (Number.isNull(accountExist) && !body.isCreateNewAccount) {
-        return res.json(Response.OK, { isCreateAccount: true });
-      } else if (Number.isNotNull(body.mobile) && body.isCreateNewAccount) {
-        const createData = {
-          name: body.mobile,
-          status: Status.ACTIVE ? Status.ACTIVE : body.status,
-          company_id: companyId,
-          type: type && type,
-          mobile: body.mobile,
-        };
-
-        accountData = await account.create(createData);
-      }
-    }
     let statusData = await StatusService.getFirstStatusDetail(
       ObjectName.ORDER_TYPE,
       companyId,
       null,
       1
     );
+
     const orderData = {
       store_id: storeId,
       date: new Date(),
@@ -189,46 +147,12 @@ async function create(req, res, next) {
       type: 1,
       customer_account: Number.isNotNull(body?.customer_account)
         ? body?.customer_account
-        : Number.isNotNull(accountExist)
-        ? accountExist?.dataValues?.id
-        : Number.isNotNull(accountData)
-        ? accountData?.id
         : null,
       upi_amount: Currency.Get(body?.upi_amount),
       cash_amount: Currency.Get(body?.cash_amount),
     };
 
-    let getOrderTypeDetail = await OrderTypeService.get(
-      orderData?.type,
-      companyId
-    );
-
-    if (
-      Number.isNotNull(getOrderTypeDetail) &&
-      Number.isNotNull(getOrderTypeDetail?.delivery_time) &&
-      getOrderTypeDetail?.allow_delivery ==
-        OrderTypeGroup.ENABLE_DELIVERY_ORDER &&
-      !DateTime.isValidDate(body?.delivery_date)
-    ) {
-      orderData.delivery_date = DateTime.addDateTimeToGraceTime(
-        orderData?.date,
-        getOrderTypeDetail?.delivery_time,
-        timeZone
-      );
-    } else {
-      orderData.delivery_date = body?.delivery_date
-        ? body?.delivery_date
-        : null;
-    }
-
     const response = await orderService.create(orderData);
-
-    if (Number.isNull(account)) {
-      await orderModel.update(
-        { customer_account: accountData?.id },
-        { where: { id: response?.id } }
-      );
-    }
 
     if (response) {
       if (
@@ -259,9 +183,6 @@ async function create(req, res, next) {
       message: "Order Added",
       orderId: orderId,
       orderDetail: response,
-      account_id: accountExist
-        ? accountExist.dataValues.id
-        : accountData && accountData?.id,
     });
 
     res.on("finish", async () => {
