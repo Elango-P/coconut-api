@@ -220,9 +220,25 @@ const create = async (req, res) => {
     let purchaseProductDetails = await PurchaseProduct.create(
       purchaseProductCreateData
     );
+    if(purchaseProductDetails && purchaseProductDetails?.id){
+    let productDatas = await product.findOne({
+      where: { id: purchaseProductDetails?.product_id, company_id: companyId },
+    });
 
-    await product.update({min_quantity:purchaseProductCreateData?.quantity},{where:{id:purchaseProductCreateData?.product_id,company_id:companyId}})
+    let updateQty =
+      Number.Get(productDatas?.min_quantity) +
+      Number.Get(purchaseProductCreateData?.quantity);
+    await product.update(
+      { min_quantity: updateQty },
+      {
+        where: {
+          id: purchaseProductCreateData?.product_id,
+          company_id: companyId,
+        },
+      }
+    );
     await reindex(purchaseProductCreateData?.product_id, companyId);
+  }
     //return response
     res.json(200, {
       message: "Purchase Product Added",
