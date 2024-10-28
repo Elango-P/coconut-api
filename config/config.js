@@ -9,7 +9,7 @@ const dbConnectionData = {
         "ssl": {
             "require": false,
             "rejectUnauthorized": false,
-        }
+        },
       },
 };
 console.log("dbConnectionData----------",dbConnectionData);

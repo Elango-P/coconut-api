@@ -314,6 +314,17 @@ const getOnlineSaleCompanySetting = async () => {
   }
 }
 
+const getSetting = async (where) => {
+  try {
+    const settingDetails = await settingService.findOne({
+      where: where,
+    });
+    return settingDetails;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 module.exports = {
   settingService,
   getSettingValue,
@@ -327,5 +338,6 @@ module.exports = {
   getValueByObject,
   getSettingListByName,
   loadSettingByName,
-  getOnlineSaleCompanySetting
+  getOnlineSaleCompanySetting,
+  getSetting
 };

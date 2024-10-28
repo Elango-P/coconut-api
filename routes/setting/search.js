@@ -6,7 +6,9 @@ const { defaultDateFormat } = require("../../lib/utils");
 const { settingService } = require("../../services/SettingService");
 
 async function search(req, res, next) {
+  const hasPermission = await Permission.Has(Permission.FEATURE_VIEW, req);
 
+  
   try {
     settingService
       .findAndCount({ where: { company_id: null } })

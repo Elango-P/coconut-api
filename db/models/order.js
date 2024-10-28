@@ -109,6 +109,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    delivery_date: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   };
 
   const order = sequelize.define('order', orderSchema, {
