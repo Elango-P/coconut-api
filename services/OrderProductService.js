@@ -93,7 +93,7 @@ const calculateProfitAmount = (costPrice, salePrice, quantity) => {
 const create = async (body, req, res) => {
   try {
     //destrcture from the product
-    const { orderId, productId, productIds, companyId, quantity, productPriceId, selectedProducts, manual_price } = body;
+    const { orderId, productId, productIds, companyId, quantity, selectedProducts,sale_price, cost_price, mrp, manual_price } = body;
     //get storeId
     const orderDetail = await order.findOne({ where: { company_id: companyId, id: orderId },attributes:["id","store_id","date","order_number"] });
 
@@ -110,11 +110,7 @@ const create = async (body, req, res) => {
 
     //check teh product Ids
     if (productId) {
-      if (!productPriceId) {
-        return res.json(400, {
-          message: 'Product Price Id is Required',
-        });
-      }
+     
 
       //ge the product details
       const productDetail = await productIndex.findOne({ where: { company_id: companyId, product_id: productId }, attributes:["cgst_percentage","sgst_percentage","reward","product_id","product_name"] });
@@ -126,19 +122,8 @@ const create = async (body, req, res) => {
         });
       }
 
-      //get product price detail
-      let productPriceDetail = await ProductPrice.findOne({ where: { id: productPriceId, company_id: companyId },attributes:["sale_price","cost_price","mrp","product_id"]});
-
-      //validate order details exist or not
-      if (!productPriceDetail) {
-        return res.json(400, {
-          message: 'Product Price Not Found',
-        });
-      }
-
       const { cgst_percentage, sgst_percentage, reward } = productDetail;
 
-      const { sale_price, cost_price, mrp } = productPriceDetail;
 
       if (!sale_price) {
         return res.json(400, {
