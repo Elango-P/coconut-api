@@ -209,9 +209,9 @@ const getThemeSettingByPortalId = async (commpanyId, callBack) => {
         attributes: ["name", "value"],
         where: { company_id: commpanyId },
       });
-      if (!settingDetails) {
-        return callBack("Setting Not Found");
-      }
+      // if (!settingDetails) {
+      //   return callBack("Setting Not Found");
+      // }
 
       settingDetails.forEach((settingDetail) => {
         settings.push({
