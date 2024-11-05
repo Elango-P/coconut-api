@@ -133,7 +133,7 @@ async function loginAs(req, res, next) {
                     if (accountDetail) accountId = accountDetail.id;
                 }
     
-                let featureList = await AppSettingService.getFeatureList(result.company_id,body.nameSpace)
+                // let featureList = await AppSettingService.getFeatureList(result.company_id,body.nameSpace)
     
                 result.locationList = locationList;
                 result.permissionList = permissionList;
@@ -141,7 +141,7 @@ async function loginAs(req, res, next) {
                 result.settingList = settingList
                 result.accountId = accountId;
                 result.app_id = body.app_id
-                result.featureList = featureList;
+                // result.featureList = featureList;
             }
             return res.json(result);
         });
