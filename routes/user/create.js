@@ -62,14 +62,17 @@ async function create(req, res, next) {
     userData.role = data?.role?.value;
     userData.email = data.email;
     userData.date_of_joining = data?.date_of_joining,
-      userData.mobile_number1 = data.mobileNumber && PhoneNumber.Get(data.mobileNumber);
+      userData.mobile_number1 = data.mobileNumber1 && PhoneNumber.Get(data.mobileNumber1);
 
     userData["password"] = md5Password(newPassword);
 
     if (defaultTimeZone) {
       userData.time_zone = defaultTimeZone;
+    }else{
+      if(data?.timeZone){
+        userData.time_zone = data?.timeZone;
+      }
     }
-
     let createData = await UserService.createUser(userData);
     
     if (createData && createData?.id) {
@@ -83,7 +86,7 @@ async function create(req, res, next) {
         name: data?.first_name,
         email: data?.email,
         status: Status.ACTIVE,
-        mobile: data.mobileNumber && PhoneNumber.Get(data?.mobileNumber),
+        mobile: data.mobileNumber1 && PhoneNumber.Get(data?.mobileNumber1),
         type: accountTypeIds[0],
         company_id: companyId,
       };
